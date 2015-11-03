@@ -6,11 +6,12 @@ import java.io.*;
 
 public class Client extends WSClient {
 
-    public Client(String serviceName, String serviceHost, int servicePort) 
+    private static final long LOOPDELAY = 2000; //delay before loop to beginning of file
+	public Client(String serviceName, String serviceHost, int servicePort) 
     throws Exception {
         super(serviceName, serviceHost, servicePort);
     }
-//TODO: shut down implementation
+
     static String file = null;
     public static void main(String[] args) {
         try {
@@ -651,7 +652,27 @@ public class Client extends WSClient {
                     System.out.println(e.getMessage());
                     e.printStackTrace();
                 }
-                break;	
+                break;
+            case 27:  //loops to read file
+                if (arguments.size() != 1) {
+                    wrongNumber();
+                    break;
+                }
+                       
+                if (file != "") {
+            		try {
+            			//wait 2 secs and restart reading file
+            			Thread.sleep(LOOPDELAY);
+						stdin = new BufferedReader(new FileReader(new File(file)));
+						System.out.println("looping to start of file... ");
+					} catch (FileNotFoundException e) {
+						System.out.println("File not found!");
+					}
+                }
+            	else {
+                	System.out.println("Not in file reading mode!");
+            	}
+                break;
                 
             	
             default:
@@ -726,6 +747,8 @@ public class Client extends WSClient {
         	return 25;
         else if (argument.compareToIgnoreCase("shutdown") == 0)
         	return 26;
+        else if (argument.compareToIgnoreCase("loop") == 0)
+        	return 27;
         else
             return 666;
     }
@@ -738,7 +761,7 @@ public class Client extends WSClient {
         System.out.println("deletecustomer\nqueryflight\nquerycar\nqueryroom\nquerycustomer");
         System.out.println("queryflightprice\nquerycarprice\nqueryroomprice");
         System.out.println("reserveflight\nreservecar\nreserveroom\nitinerary");
-        System.out.println("start\ncommit\nabort\n");
+        System.out.println("start\ncommit\nabort\nloop");
         System.out.println("quit");
         System.out.println("\ntype help, <commandname> for detailed info (note the use of comma).");
     }
@@ -954,6 +977,14 @@ public class Client extends WSClient {
                 System.out.println("\tShuts down all servers. \n\t\tAll transactions must have committed for the call to succeed");
                 System.out.println("\nUsage: ");
                 System.out.println("\tshutdown, <id>");
+                break;
+                
+            case 27:
+            	System.out.println("Loops to start of file");
+                System.out.println("Purpose: ");
+                System.out.println("\tRead the commands in the file again. \n\t\tThe client must be in file reading mode");
+                System.out.println("\nUsage: ");
+                System.out.println("\tloop, <id>");
                 break;
 
             default:
