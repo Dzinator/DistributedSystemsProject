@@ -40,6 +40,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 	public enum Server {Flight, Car, Hotel};
 	public static final int READ = 0;
 	public static final int WRITE = 1;
+	public static final long TTL = 20000; //20 seconds
 	
 	/*
 	 * Assignment 2 data structures required:
@@ -48,7 +49,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 	 * lock manager
 	 * set of transactions currently opened
 	 * */
-	private static final HashMap<Integer, Transaction> trxns = new HashMap<Integer, Transaction>(1000);
+	public static final HashMap<Integer, Transaction> trxns = new HashMap<Integer, Transaction>(1000);
 	private static final LockManager lm = new LockManager();
 	
 	//TODO: customers data structure is fine, since we add teh customer after locking it 
@@ -117,6 +118,9 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		String hotelServiceName = "room";//(String) env.lookup("flight-service-name");
 		Connection hotelServer = new Connection(hotelServiceName, hotelServiceHost, hotelServicePort );
 		services.put(Server.Hotel, hotelServer);
+		
+		//dispatch a thread to enforce TTL fro transactions
+		new TTLEnforcer(this).run();
 	}
 	
 	public static void main(String[] args) throws Exception 
@@ -224,6 +228,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			lm.Lock(id, "f" + flightNumber, READ);
 			String cmd = "qf," + flightNumber;
 			t.addCommand(cmd);
+			
 			System.out.println("hello 4 in queryflight, data item: " + "f" + flightNumber);
 			return services.get(Server.Flight).proxy.queryFlight(id, flightNumber);
 		  } 
@@ -250,6 +255,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			lm.Lock(id, "f" + flightNumber, READ);
 			String cmd = "pf," + flightNumber;
 			t.addCommand(cmd);
+			
 			return services.get(Server.Flight).proxy.queryFlightPrice(id, flightNumber);
 		  } 
 		  catch (DeadlockException e) 
@@ -274,6 +280,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			lm.Lock(id, "c" + location + "," + numCars +"," + carPrice, WRITE);
 			String cmd = "+c," + location + "," + numCars +"," + carPrice;
 			t.addCommand(cmd);
+			
 			return services.get(Server.Car).proxy.addCars(id, location, numCars, carPrice);
 		  } 
 		  catch (DeadlockException e) 
@@ -301,6 +308,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			  int price = services.get(Server.Car).proxy.queryCarsPrice(id, location);
 			  String cmd = "-c," + location + "," + numCars + "," + price;
 			  t.addCommand(cmd);
+			  
 			  return services.get(Server.Car).proxy.deleteCars(id, location);
 		  } 
 		  catch (DeadlockException e) 
@@ -323,6 +331,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			lm.Lock(id, "c" + location, READ);
 			String cmd = "qc," + location;
 			t.addCommand(cmd);
+			
 			return services.get(Server.Car).proxy.queryCars(id, location);
 		  } 
 		  catch (DeadlockException e) 
@@ -345,6 +354,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			lm.Lock(id, "c" + location, READ);
 			 String cmd = "pc," + location;
 			  t.addCommand(cmd);
+			  
 			  return services.get(Server.Car).proxy.queryCarsPrice(id, location);
 		  } 
 		  catch (DeadlockException e) 
@@ -370,6 +380,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			lm.Lock(id, "h" + location, WRITE);
 			 String cmd = "+h," + location + "," + numRooms +"," + roomPrice;
 			  t.addCommand(cmd);
+			  
 			  return services.get(Server.Hotel).proxy.addRooms(id, location, numRooms, roomPrice);
 		  } 
 		  catch (DeadlockException e) 
@@ -394,6 +405,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			  int price = services.get(Server.Hotel).proxy.queryRoomsPrice(id, location);
 			  String cmd = "-h," + location + "," + numRooms + "," + price;
 			  t.addCommand(cmd);
+			  
 			  return services.get(Server.Hotel).proxy.deleteRooms(id, location);
 		  } 
 		  catch (DeadlockException e) 
@@ -417,6 +429,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			lm.Lock(id, "h" + location, READ);
 			  String cmd = "qh," + location;
 			  t.addCommand(cmd);
+			  
 			  return services.get(Server.Hotel).proxy.queryRooms(id, location);
 		  } 
 		  catch (DeadlockException e) 
@@ -440,6 +453,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			lm.Lock(id, "h" + location, READ);
 			 String cmd = "ph," + location;
 			  t.addCommand(cmd);
+			  
 			  return services.get(Server.Hotel).proxy.queryRoomsPrice(id, location);
 		  } 
 		  catch (DeadlockException e) 
@@ -469,6 +483,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 				lm.Lock(id, "cu" + randomId, WRITE);
 				 String cmd = "+cu," + randomId;
 				 t.addCommand(cmd);
+				 
 				addCustomerToServices(id, randomId);
 				return randomId;
 		  } 
@@ -499,6 +514,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 				lm.Lock(id, "cu" + customerId, WRITE);
 				 String cmd = "+cu," + customerId;
 				 t.addCommand(cmd);
+				 
 				addCustomerToServices(id, customerId);
 				return true;
 		  } 
@@ -527,6 +543,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 				lm.Lock(id, "cu" + customerId, WRITE);
 				 String cmd = "-cu," + customerId;
 				 t.addCommand(cmd);
+				 
 				removeCustomerFromServices(id, customerId);
 				return true;
 		  } 
@@ -555,6 +572,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 				lm.Lock(id, "cu" + customerId, READ);
 				String cmd = "qcu," + customerId;
 				t.addCommand(cmd);
+				
 				return "Composite Bill for customer " + customerId + " {\n\t\t" +
 				   services.get(Server.Car).proxy.queryCustomerInfo(id, customerId) + "\n\n\t\t" +
 				   services.get(Server.Hotel).proxy.queryCustomerInfo(id, customerId) + "\n\n\t\t" +
@@ -586,6 +604,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			int price = services.get(Server.Flight).proxy.queryFlightPrice(id, flightNumber);
 		    String cmd = "rf," + customerId + "," + flightNumber + "," + seats + "," + price;
 		    t.addCommand(cmd);
+		    
 		    return services.get(Server.Flight).proxy.reserveFlight(id, customerId, flightNumber);
 		  } 
 		  catch (DeadlockException e) 
@@ -613,6 +632,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			int price = services.get(Server.Car).proxy.queryCarsPrice(id, location);
 		    String cmd = "rc," + customerId + "," +  location + "," + numCars + "," + price;
 		    t.addCommand(cmd);
+		    
 		    return services.get(Server.Car).proxy.reserveCar(id, customerId, location);
 		  } 
 		  catch (DeadlockException e) 
@@ -640,6 +660,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 			int price = services.get(Server.Hotel).proxy.queryRoomsPrice(id, location);
 		    String cmd = "rh," + customerId + "," + location + "," + numRooms + "," + price;
 		    t.addCommand(cmd);
+		    
 		    return services.get(Server.Hotel).proxy.reserveRoom(id, customerId, location);
 		  } 
 		  catch (DeadlockException e) 
@@ -754,7 +775,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		while ( trxns.containsKey(randomTrnxId))
 			randomTrnxId = Math.abs(new Random().nextInt());
 		
-		trxns.put(randomTrnxId, new Transaction(randomTrnxId));
+		trxns.put(randomTrnxId, new Transaction(randomTrnxId, System.currentTimeMillis() + TTL));
 		return randomTrnxId;
 	}
 
@@ -929,7 +950,6 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		
 		//call shutdown for middleware
 		System.exit(0);
-		
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -962,15 +982,75 @@ class Customer
 	}
 }
 
+//thread to handle the TTL mechanism for transactions
+class TTLEnforcer implements Runnable
+{
+	Main program;
+	public TTLEnforcer(Main m)
+	{
+		program = m;
+	}
+	
+	@Override
+	public void run() {
+	
+	//infinite loop for checking
+	 while(true)
+	 {
+		 try
+		{
+			 //iterate over all transactions
+			for(Entry<Integer, Transaction> e : Main.trxns.entrySet())
+			{
+				//if transaction's last time-stamp is greater then the TTL threshold, we abort the transaction
+				if ( e.getValue().timestamp < System.currentTimeMillis())
+				{
+					//dispatch new thread slave to handle the abort calls
+					new TTLEnforcerSlave(program, e.getValue()).run();
+				}
+			}
+			
+			//sleep for a time inversely proportional to the number of currently opened transactions
+			Thread.sleep(Main.TTL - Main.trxns.size() * 2); 
+		} 
+		//if sleep interrupted, just restart the method
+		catch(Exception e)
+		{
+			run();
+		}
+	 }
+	}
+}
+
+class TTLEnforcerSlave implements Runnable
+{
+	Main program;
+	Transaction txn;
+	public TTLEnforcerSlave(Main m, Transaction t)
+	{
+		program = m;
+		txn = t;
+	}
+	
+	//simple method to execute the abort call of a transaction
+	@Override
+	public void run() 
+	{
+		program.abort(txn.tid);
+	}
+}
+
 class Transaction
 {
 	private ArrayList<Main.Server> servers = new ArrayList<Main.Server>(3);
 	private LinkedList<String> operations = new LinkedList<String>();
 	public int tid;
+	public long timestamp;
 	
-	public Transaction(int txid)
+	public Transaction(int txid, long ts)
 	{
 		tid = txid;
+		timestamp = ts;
 	}
 	
 	public ArrayList<Main.Server> servers() 
@@ -997,6 +1077,7 @@ class Transaction
 	public void addCommand(String cmd)
 	{
 		operations.add(cmd);
+		timestamp = System.currentTimeMillis() + Main.TTL;
 	}
 	
 	public LinkedList<String> cmds()
