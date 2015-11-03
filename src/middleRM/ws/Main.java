@@ -1,6 +1,5 @@
 package middleRM.ws;
 
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -14,16 +13,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 import java.util.Vector;
-
 import javax.jws.WebService;
-
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
-
 import LockManager.*; //for ass2
-
 import javax.naming.NamingException;
-
 import org.apache.catalina.startup.Tomcat;
 
 @WebService
@@ -40,7 +34,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 	public enum Server {Flight, Car, Hotel};
 	public static final int READ = 0;
 	public static final int WRITE = 1;
-	public static final long TTL = 20000; //20 seconds
+	public static final long TTL = 20000; //time to live : 20 seconds
 	
 	/*
 	 * Assignment 2 data structures required:
@@ -54,42 +48,6 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 	
 	//TODO: customers data structure is fine, since we add teh customer after locking it 
 	// 		put cmds after locking in try block
-	
-	/*
-	 *  f : flight
-		h : hotel
-		c : car
-		cu : customer
-		i : itinerary
-		
-		
-		cmds
-		"+f," + flightNumber + "," + numSeats +"," + flightPrice; (add flight)
-		"-f," + flightNumber;									  (deleteFlight)
-		"qf," + flightNumber;									  (queryFlight)
-		"pf," + flightNumber; 									  (queryFlightPrice)
-		
-		 "+c," + location + "," + numCars +"," + carPrice		  (addCar)
-		 "-c," + location; 										  (deleteCar)
-		 "qc," + location;										  (queryCar)
-		 "pc," + location;										  (queryCarsPrice)
-		
-		 "+h," + location + "," + numRooms +"," + roomPrice;      (addRoom)
-		 "-h," + location;										  (deleteRooms)
-		 "qh," + location;										  (queryRooms)
-		 "ph," + location;										  (queryRoomsPrice)
-		
-		
-		"+cu," + randomId										  (newCustomer)
-		"+cu," + customerId;									  (newCustomerId)
-		"-cu," + customerId;									  (deleteCustomer)
-		"qcu," + customerId;									  (queryCustomerInfo)
-		
-		 "rf," + "," + customerId + "," + flightNumber;			  (reserveFlight)
-		 "rc," + "," + customerId + "," + location;				  (reserveCar)
-		 "rh," + "," + customerId + "," + location;				  (reserveRoom)
- */
-	
 	
 	public Main() throws NamingException, MalformedURLException
 	{
@@ -119,8 +77,8 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		Connection hotelServer = new Connection(hotelServiceName, hotelServiceHost, hotelServicePort );
 		services.put(Server.Hotel, hotelServer);
 		
-		//dispatch a thread to enforce TTL fro transactions
-		new TTLEnforcer(this).run();
+		//dispatch a thread to enforce TTL for transactions
+		//new TTLEnforcer(this).run();
 	}
 	
 	public static void main(String[] args) throws Exception 
@@ -136,7 +94,6 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
         	System.out.println(s);
         }
        
-        
         //setup Tomcat
         String serviceName = args[0];
         int port = Integer.parseInt(args[1]);
@@ -168,13 +125,11 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		  if (!trxns.containsKey(id))
 			  return false;
 		  
-		  //get transaction
-		  Transaction t = trxns.get(id);
-		  t.addServer(Server.Flight); //add server to transaction
-		 
-		  
-		  try { //not sure
+		  try 
+		  {
 			lm.Lock(id, "f" + flightNumber, WRITE);
+			Transaction t = trxns.get(id); //get transaction
+			t.addServer(Server.Flight); //add server to transaction
 			String cmd = "+f," + flightNumber + "," + numSeats +"," + flightPrice;
 			t.addCommand(cmd);
 			System.out.println("in addflight, data item: " + "f" + flightNumber);
@@ -184,9 +139,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		  {
 			  System.out.println("hello exception in addflight");
 			  return false;
-		  }
-		  //System.out.println("unreachable : hello 5");
-		  
+		  }  
 	}
 
 	@Override
@@ -778,6 +731,17 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		trxns.put(randomTrnxId, new Transaction(randomTrnxId, System.currentTimeMillis() + TTL));
 		return randomTrnxId;
 	}
+	
+	@Override
+	//Start a new transaction and return its id
+	public boolean startid(int tid) {
+		 
+		if (trxns.containsKey(tid))
+			  return false;
+		
+		trxns.put(tid, new Transaction(tid, System.currentTimeMillis() + TTL));
+		return true;
+	}
 
 	@Override
 	//Attempt to commit the given transaction; return true upon success
@@ -795,6 +759,16 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 	@Override
 	//Abort the given transaction.
 	public boolean abort(int transactionId) {
+		
+		Transaction t = trxns.get(transactionId);
+		
+		//synchronize t to set isAborting to true
+		synchronized(t)
+		{
+			if ( t.isAborting) //to prevent double aborts of a transaction
+				return true;
+			t.isAborting = true;
+		}
 		
 		//call all servers to abort
 		for( Server s : trxns.get(transactionId).servers())
@@ -994,7 +968,7 @@ class TTLEnforcer implements Runnable
 	@Override
 	public void run() {
 	
-	//infinite loop for checking
+	//infinite loop for checking if time-stamps of transactions > TTL
 	 while(true)
 	 {
 		 try
@@ -1011,7 +985,7 @@ class TTLEnforcer implements Runnable
 			}
 			
 			//sleep for a time inversely proportional to the number of currently opened transactions
-			Thread.sleep(Main.TTL - Main.trxns.size() * 2); 
+			Thread.sleep(Math.max(Main.TTL - Main.trxns.size() * 2, 0)); 
 		} 
 		//if sleep interrupted, just restart the method
 		catch(Exception e)
@@ -1022,6 +996,7 @@ class TTLEnforcer implements Runnable
 	}
 }
 
+/*slave class for TTLEnforcer, takes care of aborting a transaction*/
 class TTLEnforcerSlave implements Runnable
 {
 	Main program;
@@ -1040,24 +1015,38 @@ class TTLEnforcerSlave implements Runnable
 	}
 }
 
+/*class representing a transaction*/
 class Transaction
 {
+	//keeps the servers being used by the transaction
 	private ArrayList<Main.Server> servers = new ArrayList<Main.Server>(3);
+	
+	//list of operations executed so far by transaction. needed in case we rollback
 	private LinkedList<String> operations = new LinkedList<String>();
+	
+	//transaction id
 	public int tid;
+	
+	//checks to see if transaction is already aborting, to prevent 
+	public boolean isAborting = false;
+	
+	//timestamp for TTL ( time to live) of transaction
 	public long timestamp;
 	
+	//constructor
 	public Transaction(int txid, long ts)
 	{
 		tid = txid;
 		timestamp = ts;
 	}
 	
+	//returns the servers used by transaction 
 	public ArrayList<Main.Server> servers() 
 	{ 
 		return servers;
 	}
 	
+	//adds the server to the list of servers currently being used
 	public void addServer(Main.Server s)
 	{
 		if (!servers.contains(s))
@@ -1065,21 +1054,23 @@ class Transaction
 			servers.add(s);
 			Main.services.get(s).proxy.start();
 		}
-			
 	}
 	
+	//removes the servers from the list
 	public void removeServer(Main.Server s)
 	{
 		if (servers.contains(s))
 			servers.remove(s);
 	}
 	
+	//adds a command to the list of commands executed by the transaction. Also, reset the TTL
 	public void addCommand(String cmd)
 	{
 		operations.add(cmd);
 		timestamp = System.currentTimeMillis() + Main.TTL;
 	}
 	
+	//returns the cmds executed by the transaction
 	public LinkedList<String> cmds()
 	{
 		return operations;

@@ -7,6 +7,7 @@ import java.io.*;
 public class Client extends WSClient {
 
     private static final long LOOPDELAY = 2000; //delay before loop to beginning of file
+    
 	public Client(String serviceName, String serviceHost, int servicePort) 
     throws Exception {
         super(serviceName, serviceHost, servicePort);
@@ -64,16 +65,16 @@ public class Client extends WSClient {
         {}
         System.out.println("Client Interface");
         System.out.println("Type \"help\" for list of supported commands");
-
-        
-        
-        
         
         while (true) {
         
             try {
                 //read the next command
                 command = stdin.readLine();
+                
+                //ignore comments
+                while(command.charAt(0) == '/')
+                	command = stdin.readLine();
                 
                 if (command == null || command == "")
                 {
@@ -583,21 +584,39 @@ public class Client extends WSClient {
                 }
                 break;
             case 23: //start a new transaction
-            	if (arguments.size() != 1) {
+            	if (arguments.size() != 1 && arguments.size() != 2) {
                     wrongNumber();
                     break;
                 }
-                System.out.println("Creating a new transaction");
-                try {
-                    int trxId = proxy.start();
-                    System.out.println("new transaction id: " + trxId);
-                }
-                catch(Exception e) {
-                    System.out.println("EXCEPTION: ");
-                    System.out.println(e.getMessage());
-                    e.printStackTrace();
-                }
-                break;
+            	if (arguments.size() == 1 )
+            	{
+            		 System.out.println("Creating a new transaction");
+                     try {
+                         int trxId = proxy.start();
+                         System.out.println("new transaction id: " + trxId);
+                     }
+                     catch(Exception e) {
+                         System.out.println("EXCEPTION: ");
+                         System.out.println(e.getMessage());
+                         e.printStackTrace();
+                     }
+                     break;
+            	}
+            	else
+            	{
+            		System.out.println("Creating a new transaction");
+                    try {
+                        boolean c = proxy.startid(getInt(arguments.elementAt(1)));
+                        System.out.println("new transaction " + arguments.elementAt(1) + " : " + c);
+                    }
+                    catch(Exception e) {
+                        System.out.println("EXCEPTION: ");
+                        System.out.println(e.getMessage());
+                        e.printStackTrace();
+                    }
+                    break;
+            	}
+               
             case 24:  //commit an existing transaction
                 if (arguments.size() != 2) {
                     wrongNumber();
@@ -662,12 +681,14 @@ public class Client extends WSClient {
                 if (file != "") {
             		try {
             			//wait 2 secs and restart reading file
+            			
             			Thread.sleep(LOOPDELAY);
+            			stdin.close();
 						stdin = new BufferedReader(new FileReader(new File(file)));
 						System.out.println("looping to start of file... ");
 					} catch (FileNotFoundException e) {
 						System.out.println("File not found!");
-					}
+					} catch (Exception e) {}
                 }
             	else {
                 	System.out.println("Not in file reading mode!");

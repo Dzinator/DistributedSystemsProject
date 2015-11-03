@@ -442,6 +442,14 @@ public class ResourceManagerImpl implements server.ws.ResourceManager {
 		System.out.println("Transaction initiated");
 		return 0;
 	}
+	
+	@Override
+	public boolean startid(int tid) {
+		// TODO Auto-generated method stub
+		System.out.println("Transaction initiated with tid " + tid);
+		return true;
+	}
+
 
 	@Override
 	public boolean commit(int transactionId) {
@@ -464,5 +472,4 @@ public class ResourceManagerImpl implements server.ws.ResourceManager {
 		System.exit(0);
 		return false;
 	}
-
 }

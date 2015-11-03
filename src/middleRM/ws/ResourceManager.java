@@ -144,6 +144,9 @@ public interface ResourceManager {
     public int start();
     
     @WebMethod
+    public boolean startid(int tid); //for testing purposes
+    
+    @WebMethod
     public boolean commit(int transactionId);
     
     @WebMethod

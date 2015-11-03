@@ -81,6 +81,24 @@ public interface ResourceManager {
 
     /**
      * 
+     * @param arg1
+     * @param arg0
+     * @return
+     *     returns java.lang.String
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "queryCustomerInfo", targetNamespace = "http://ws.server/", className = "middleRM.QueryCustomerInfo")
+    @ResponseWrapper(localName = "queryCustomerInfoResponse", targetNamespace = "http://ws.server/", className = "middleRM.QueryCustomerInfoResponse")
+    @Action(input = "http://ws.server/ResourceManager/queryCustomerInfoRequest", output = "http://ws.server/ResourceManager/queryCustomerInfoResponse")
+    public String queryCustomerInfo(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        int arg1);
+
+    /**
+     * 
      * @param arg3
      * @param arg2
      * @param arg1
@@ -459,20 +477,17 @@ public interface ResourceManager {
 
     /**
      * 
-     * @param arg1
      * @param arg0
      * @return
-     *     returns java.lang.String
+     *     returns boolean
      */
     @WebMethod
     @WebResult(targetNamespace = "")
-    @RequestWrapper(localName = "queryCustomerInfo", targetNamespace = "http://ws.server/", className = "middleRM.QueryCustomerInfo")
-    @ResponseWrapper(localName = "queryCustomerInfoResponse", targetNamespace = "http://ws.server/", className = "middleRM.QueryCustomerInfoResponse")
-    @Action(input = "http://ws.server/ResourceManager/queryCustomerInfoRequest", output = "http://ws.server/ResourceManager/queryCustomerInfoResponse")
-    public String queryCustomerInfo(
+    @RequestWrapper(localName = "startid", targetNamespace = "http://ws.server/", className = "middleRM.Startid")
+    @ResponseWrapper(localName = "startidResponse", targetNamespace = "http://ws.server/", className = "middleRM.StartidResponse")
+    @Action(input = "http://ws.server/ResourceManager/startidRequest", output = "http://ws.server/ResourceManager/startidResponse")
+    public boolean startid(
         @WebParam(name = "arg0", targetNamespace = "")
-        int arg0,
-        @WebParam(name = "arg1", targetNamespace = "")
-        int arg1);
+        int arg0);
 
 }

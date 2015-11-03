@@ -66,6 +66,21 @@ public interface Main {
 
     /**
      * 
+     * @param arg0
+     * @return
+     *     returns boolean
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "commit", targetNamespace = "http://ws.middleRM/", className = "client.Commit")
+    @ResponseWrapper(localName = "commitResponse", targetNamespace = "http://ws.middleRM/", className = "client.CommitResponse")
+    @Action(input = "http://ws.middleRM/Main/commitRequest", output = "http://ws.middleRM/Main/commitResponse")
+    public boolean commit(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0);
+
+    /**
+     * 
      * @param arg3
      * @param arg2
      * @param arg1
@@ -87,21 +102,6 @@ public interface Main {
         int arg2,
         @WebParam(name = "arg3", targetNamespace = "")
         int arg3);
-
-    /**
-     * 
-     * @param arg0
-     * @return
-     *     returns boolean
-     */
-    @WebMethod
-    @WebResult(targetNamespace = "")
-    @RequestWrapper(localName = "commit", targetNamespace = "http://ws.middleRM/", className = "client.Commit")
-    @ResponseWrapper(localName = "commitResponse", targetNamespace = "http://ws.middleRM/", className = "client.CommitResponse")
-    @Action(input = "http://ws.middleRM/Main/commitRequest", output = "http://ws.middleRM/Main/commitResponse")
-    public boolean commit(
-        @WebParam(name = "arg0", targetNamespace = "")
-        int arg0);
 
     /**
      * 
@@ -456,6 +456,21 @@ public interface Main {
         boolean arg4,
         @WebParam(name = "arg5", targetNamespace = "")
         boolean arg5);
+
+    /**
+     * 
+     * @param arg0
+     * @return
+     *     returns boolean
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "startid", targetNamespace = "http://ws.middleRM/", className = "client.Startid")
+    @ResponseWrapper(localName = "startidResponse", targetNamespace = "http://ws.middleRM/", className = "client.StartidResponse")
+    @Action(input = "http://ws.middleRM/Main/startidRequest", output = "http://ws.middleRM/Main/startidResponse")
+    public boolean startid(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0);
 
     /**
      * 

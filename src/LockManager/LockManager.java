@@ -37,7 +37,7 @@ public class LockManager
             return false;
         }
         
-        System.out.println("Lock Manager: in lock()");
+        //System.out.println("Lock Manager: in lock()");
         /*System.out.print("size of lockTable : " + lockTable.getSize() + "\n\t");
         Vector v1 = lockTable.allElements();
         for ( Object o : v1)
@@ -83,7 +83,7 @@ public class LockManager
                             // *** ADD CODE HERE *** to carry out the lock conversion in the
                             // lock table
                         	
-                        	System.out.println("Im in conversion of locks");
+                        	//System.out.println("Im in conversion of locks");
                         	
                         	//get current data obj, clone it, change the lock in clone, remove original, place clone back in
                         	XObj x2 = this.lockTable.get(dataObj);
@@ -100,7 +100,7 @@ public class LockManager
                         	this.lockTable.add(trx1);            	
                         } else {
                             // a lock request that is not lock conversion
-                        	System.out.println("addflight should go here : trxid = " + xid);
+                        	//System.out.println("addflight should go here : trxid = " + xid);
                             this.lockTable.add(trxnObj);
                             this.lockTable.add(dataObj);
                         }
@@ -217,9 +217,9 @@ public class LockManager
     // is set. 
     
     private boolean LockConflict(DataObj dataObj, BitSet bitset) throws DeadlockException, RedundantLockRequestException {
-    	System.out.println("\t Lock Manager: in Lock Conflict");
+    	//System.out.println("\t Lock Manager: in Lock Conflict");
         Vector vect = this.lockTable.elements(dataObj);
-        System.out.println("\t Lock Manager: vector empty = " + vect.isEmpty());
+       // System.out.println("\t Lock Manager: vector empty = " + vect.isEmpty());
         DataObj dataObj2;
         int size = vect.size();
         
@@ -227,7 +227,7 @@ public class LockManager
         // as soon as a lock that conflicts with the current lock request is found, return true
         for (int i = 0; i < size; i++) {
             dataObj2 = (DataObj) vect.elementAt(i);
-            System.out.println("dataObj1 =  " + dataObj + " ; dataObj2= = " + dataObj2);
+           // System.out.println("dataObj1 =  " + dataObj + " ; dataObj2= = " + dataObj2);
             if (dataObj.getXId() == dataObj2.getXId()) {    
             	System.out.println("dataObj.getXId() == dataObj2.getXId()");
                 // the transaction already has a lock on this data item which means that it is either
@@ -244,7 +244,7 @@ public class LockManager
                     // (2) transaction already had a WRITE lock
                     // Seeing the comments at the top of this function might be helpful
                     // *** ADD CODE HERE *** to take care of both these cases
-                	System.out.println("queryflight should not go here : dataObj.getLockType() == DataObj.WRITE");
+                	//System.out.println("queryflight should not go here : dataObj.getLockType() == DataObj.WRITE");
                 	 // (1) transaction already had a READ lock
                 	if(dataObj2.getLockType() == DataObj.READ)
                 	{
@@ -276,7 +276,7 @@ public class LockManager
                     if (dataObj2.getLockType() == DataObj.WRITE) {
                         // transaction is requesting a READ lock and some other transaction
                         // already has a WRITE lock on it ==> conflict
-                    	System.out.println("queryflight should go here after calling newflight");
+                    	//System.out.println("queryflight should go here after calling newflight");
                         System.out.println("Want READ, someone has WRITE");
                         return true;
                     }

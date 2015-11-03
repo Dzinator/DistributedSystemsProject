@@ -46,7 +46,7 @@ public class TPHashTable
     public synchronized Vector elements(XObj xobj) {
         if (xobj == null)
         	{
-        		System.out.println("\t\telements() : xobj null return empty vector for elements");
+        		//System.out.println("\t\telements() : xobj null return empty vector for elements");
         		return (new Vector());
         	}
         
@@ -64,12 +64,12 @@ public class TPHashTable
         int size = vectSlot.size();
         for ( int i = 0 ; i < size; i++ ) {
             xobj2 = (XObj) vectSlot.elementAt(i);
-            System.out.println("\t\t\txobj2 null" + xobj2 == null);
+           // System.out.println("\t\t\txobj2 null" + xobj2 == null);
             if ( xobj.key() == xobj2.key()) {
                 elemVect.addElement(xobj2);
             }
         }
-        System.out.println("\'t\t\telem Vector empty? " + elemVect.isEmpty());
+        //System.out.println("\'t\t\telem Vector empty? " + elemVect.isEmpty());
         return elemVect;
     }
     

@@ -158,6 +158,7 @@
 	    <antcall target="build-middleRMServer"/>  <!-- "build-middleRM" -->
 	    <antcall target="create-war2"/>
 	    <antcall target="deploy-war2"/>
+        <antcall target="compileLocks"/>
 		<antcall target="start-tomcat-MiddleRM"/>
 	  </target>
 	
@@ -200,7 +201,16 @@
 		        </java>
 	</target>
 	
-	 
+	 <target name="compileLocks">
+         <javac
+                fork="true"
+                srcdir="${basedir}/src"
+                destdir="${basedir}/build/classes"
+                includes="LockManager/*">
+            <!--<classpath refid="jaxws.classpath"/>-->
+        </javac>
+
+    </target>
 	
 	<target name="build-middleRM" depends="generate-middleRM">
 		<javac
@@ -243,7 +253,7 @@
 		        verbose="${verbose}"
 		        destdir="${basedir}/build/classes"
 		        srcdir="${basedir}/src"
-		        includes="middleRM/**"
+		        includes="middleRM/**" 
 		        sourceDestDir="${basedir}/build/classes"
 		        procOnly="false"
 		        sourcepath="${basedir}/src">
@@ -253,7 +263,21 @@
 		    </classpath>
 		</annotationProcessing>
 	    </target>
-	
+
+
+    <path id="p1">
+        <fileset dir="${basedir}/src">
+            <include name="middleRM/**"/>
+        </fileset>
+    </path>
+
+    <path id="p2">
+        <path refid="p1"/>
+        <fileset dir="${basedir}/src">
+            <include name="LockManager/*"/>
+        </fileset>
+    </path>
+	<!-- Includes above changed was middleRM/**-->
 	<!--
 	<target name="start-tomcatRM">
 	        <echo message="Starting Tomcat on middle RM and deploying service ... "/>
