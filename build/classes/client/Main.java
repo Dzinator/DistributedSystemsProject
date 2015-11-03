@@ -81,6 +81,24 @@ public interface Main {
 
     /**
      * 
+     * @param arg1
+     * @param arg0
+     * @return
+     *     returns java.lang.String
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "queryCustomerInfo", targetNamespace = "http://ws.middleRM/", className = "client.QueryCustomerInfo")
+    @ResponseWrapper(localName = "queryCustomerInfoResponse", targetNamespace = "http://ws.middleRM/", className = "client.QueryCustomerInfoResponse")
+    @Action(input = "http://ws.middleRM/Main/queryCustomerInfoRequest", output = "http://ws.middleRM/Main/queryCustomerInfoResponse")
+    public String queryCustomerInfo(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        int arg1);
+
+    /**
+     * 
      * @param arg3
      * @param arg2
      * @param arg1
@@ -471,23 +489,5 @@ public interface Main {
     public boolean startid(
         @WebParam(name = "arg0", targetNamespace = "")
         int arg0);
-
-    /**
-     * 
-     * @param arg1
-     * @param arg0
-     * @return
-     *     returns java.lang.String
-     */
-    @WebMethod
-    @WebResult(targetNamespace = "")
-    @RequestWrapper(localName = "queryCustomerInfo", targetNamespace = "http://ws.middleRM/", className = "client.QueryCustomerInfo")
-    @ResponseWrapper(localName = "queryCustomerInfoResponse", targetNamespace = "http://ws.middleRM/", className = "client.QueryCustomerInfoResponse")
-    @Action(input = "http://ws.middleRM/Main/queryCustomerInfoRequest", output = "http://ws.middleRM/Main/queryCustomerInfoResponse")
-    public String queryCustomerInfo(
-        @WebParam(name = "arg0", targetNamespace = "")
-        int arg0,
-        @WebParam(name = "arg1", targetNamespace = "")
-        int arg1);
 
 }

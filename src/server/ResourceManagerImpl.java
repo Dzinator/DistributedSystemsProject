@@ -454,14 +454,14 @@ public class ResourceManagerImpl implements server.ws.ResourceManager {
 	@Override
 	public boolean commit(int transactionId) {
 		// TODO Auto-generated method stub
-		System.out.println("Transaction committed");
+		System.out.println("Transaction committed : " + transactionId);
 		return true;
 	}
 
 	@Override
 	public boolean abort(int transactionId) {
 		// TODO Auto-generated method stub
-		System.out.println("Transaction aborted");
+		System.out.println("Transaction aborted : " + transactionId);
 		return true;
 	}
 

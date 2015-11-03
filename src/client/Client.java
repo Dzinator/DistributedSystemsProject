@@ -62,7 +62,7 @@ public class Client extends WSClient {
         	else
         		stdin= new BufferedReader(new InputStreamReader(System.in));
         }catch (Exception e)
-        {}
+        {System.out.println("file not found");}
         System.out.println("Client Interface");
         System.out.println("Type \"help\" for list of supported commands");
         
