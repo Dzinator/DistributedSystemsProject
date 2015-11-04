@@ -7,6 +7,9 @@ import java.io.*;
 public class Client extends WSClient {
 
     private static final long LOOPDELAY = 2000; //delay before loop to beginning of file
+    //performance analysis variables
+    private HashMap<Integer, Long> startTimes = new HashMap<Integer, Long>();
+    private HashMap<Integer, Long> endTimes = new HashMap<Integer, Long>();
     
 	public Client(String serviceName, String serviceHost, int servicePort) 
     throws Exception {
@@ -594,12 +597,16 @@ public class Client extends WSClient {
                      try {
                          int trxId = proxy.start();
                          System.out.println("new transaction id: " + trxId);
+                         //performance analysis
+                 		 startTimes.put(trxId, System.currentTimeMillis());
                      }
                      catch(Exception e) {
                          System.out.println("EXCEPTION: ");
                          System.out.println(e.getMessage());
                          e.printStackTrace();
                      }
+                     
+                     
                      break;
             	}
             	else
@@ -629,6 +636,18 @@ public class Client extends WSClient {
 
                     boolean c = proxy.commit(id);
                     System.out.println("Transaction " + id + " committed : " + c);
+                    if (startTimes.containsKey(id)) {
+						//performance analysis
+						endTimes.put(id, System.currentTimeMillis());
+						long duration = endTimes.get(id) - startTimes.get(id);
+						PrintWriter writer = null;
+						try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("stats.txt", true)))) {
+							//append to stats file
+							writer.println("Transaction " + id + " lasted : " + duration + "ms");
+						} catch (IOException e) {
+							System.out.println("Stats file couldn't be written");
+						} 
+					}
                 }
                 catch(Exception e) {
                     System.out.println("EXCEPTION: ");
