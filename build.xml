@@ -158,7 +158,7 @@
 	    <antcall target="build-middleRMServer"/>  <!-- "build-middleRM" -->
 	    <antcall target="create-war2"/>
 	    <antcall target="deploy-war2"/>
-        <antcall target="compileLocks"/>
+        <!--<antcall target="compileLocks"/>-->
 		<antcall target="start-tomcat-MiddleRM"/>
 	  </target>
 	
@@ -207,7 +207,6 @@
                 srcdir="${basedir}/src"
                 destdir="${basedir}/build/classes"
                 includes="LockManager/*">
-            <!--<classpath refid="jaxws.classpath"/>-->
         </javac>
 
     </target>
@@ -217,7 +216,7 @@
 		        fork="true"
 		        srcdir="${basedir}/src"
 		        destdir="${basedir}/build/classes"
-		        includes="middleRM/**">
+		        includes="middleRM/**,LockManager/**,TM/**">
 		    <classpath refid="jaxws.classpath"/>
 		</javac>
 	 </target>
@@ -253,7 +252,7 @@
 		        verbose="${verbose}"
 		        destdir="${basedir}/build/classes"
 		        srcdir="${basedir}/src"
-		        includes="middleRM/**" 
+		        includes="middleRM/**,LockManager/**,TM/**" 
 		        sourceDestDir="${basedir}/build/classes"
 		        procOnly="false"
 		        sourcepath="${basedir}/src">

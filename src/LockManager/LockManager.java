@@ -83,21 +83,57 @@ public class LockManager
                             // *** ADD CODE HERE *** to carry out the lock conversion in the
                             // lock table
                         	
-                        	//System.out.println("Im in conversion of locks");
+                        	System.out.println("Im in conversion of locks...");
                         	
                         	//get current data obj, clone it, change the lock in clone, remove original, place clone back in
-                        	XObj x2 = this.lockTable.get(dataObj);
-                        	DataObj dataObj1 = (DataObj) x2.clone();
-                        	dataObj1.lockType = dataObj1.WRITE;
-                        	this.lockTable.remove(x2);
-                        	this.lockTable.add(dataObj1);
-                        	
-                        	//get current trx obj, clone it, change the lock in clone, remove original, place clone back in
-                        	XObj x3 = lockTable.get(trxnObj);
-                        	TrxnObj trx1 = (TrxnObj) x3.clone();
-                        	trx1.lockType = trx1.WRITE;
-                        	this.lockTable.remove(x3);
-                        	this.lockTable.add(trx1);            	
+                        	try {
+								/*XObj x2 = this.lockTable.get(dataObj);
+								DataObj dataObj1 = (DataObj) x2.clone();
+								dataObj1.lockType = dataObj1.WRITE;
+								this.lockTable.remove(x2);
+								this.lockTable.add(dataObj1);*/
+								
+								//get current trx obj, clone it, change the lock in clone, remove original, place clone back in
+								/*XObj x3 = lockTable.get(trxnObj);
+								TrxnObj trx1 = (TrxnObj) x3.clone();
+								trx1.lockType = trx1.WRITE;
+								this.lockTable.remove(x3);
+								this.lockTable.add(trx1);*/
+                        		System.out.println("before loop");
+								TrxnObj trxnQueryObj = new TrxnObj(xid, "", -1);  // Only used in elements() call below.
+						        Vector vect = this.lockTable.elements(trxnQueryObj);
+					            TrxnObj trxnObj2;
+					    
+					            int size = vect.size();                            
+					            for (int i = (size - 1); i >= 0; i--) 
+					            {
+					            	System.out.println("in loop i = " + i);
+					                trxnObj2 = (TrxnObj) vect.elementAt(i);
+					                System.out.println("data = " + trxnObj2.getDataName() + "; current lock " + trxnObj2.lockType + "; current trxn : " + trxnObj2.getXId() + "; strdata = " + strData);
+					                if ( trxnObj2.getDataName().equalsIgnoreCase(strData)) //same data
+					                {
+					                	System.out.println("\t in if i = " + i + " data = " + trxnObj2.getDataName() + "; current lock " + trxnObj2.lockType + "; current trxn : " + trxnObj2.getXId());
+					                	System.out.println("\tbefore removing trxn object and creating a new one");
+					                	TrxnObj o = (TrxnObj) this.lockTable.get(trxnObj2);
+					                	o.lockType = WRITE;
+					                	this.lockTable.remove(trxnObj2);
+					                	this.lockTable.add(o);
+					                	
+					                	System.out.println("\tbefore removing data object and creating a new one");
+				                	    DataObj data2remove = new DataObj(trxnObj2.getXId(), trxnObj2.getDataName(), trxnObj2.getLockType());
+						                this.lockTable.remove(data2remove);
+						                DataObj data2add = new DataObj(o.getXId(), o.getDataName(), o.getLockType());
+						                this.lockTable.add(data2add);
+					                
+						                System.out.println("\tbefore break");
+						                break; //only 1 data item request should match
+					                }
+					            } 
+                        	}
+					        catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+							}            	
                         } else {
                             // a lock request that is not lock conversion
                         	//System.out.println("addflight should go here : trxid = " + xid);
@@ -248,6 +284,7 @@ public class LockManager
                 	 // (1) transaction already had a READ lock
                 	if(dataObj2.getLockType() == DataObj.READ)
                 	{
+                		System.out.println("Seeking lock conversion from READ to WRITE");
                 		//boolean onlyTrx = true;
                 		for ( int j = 0; j < size; j++)
                 		{
@@ -259,6 +296,7 @@ public class LockManager
                 			}
                 				
                 		}
+                		System.out.println("Before returning false, lock conversion should succeed...");
                 		//set conversion
                 		bitset.set(0); //sets at index 0 to true
                 		return false;
@@ -267,6 +305,10 @@ public class LockManager
                 	else if (dataObj2.getLockType() == DataObj.WRITE)
                 	{
                 		 throw new RedundantLockRequestException(dataObj.getXId(), "Redundant WRITE lock request");
+                	}
+                	else
+                	{
+                		System.out.println("should not be here, either it requests a READ or WRITE!!");
                 	}
                 	
                 }
