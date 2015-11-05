@@ -1,6 +1,7 @@
 package TM;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Stack;
 
@@ -16,6 +17,9 @@ class Transaction
 	//list of operations executed so far by transaction. needed in case we rollback
 	private LinkedList<String> operationsToExecute = new LinkedList<String>();
 	private Stack<String> operationsExecuted = new Stack<String>();
+	
+	//items queried and operated on by transaction
+	public final HashMap<String, Item> writeSet = new HashMap<String, Item>(5);
 	
 	//transaction id
 	public final int tid;
@@ -100,8 +104,8 @@ class Transaction
 		return  operationsToExecute;
 	}
 	
+	//to string method for printing a transaction
 	@Override
-	//TODO: to string method for transaction object
 	public String toString()
 	{
 		String result = String.format("Transaction id : %d\n'\t", tid);

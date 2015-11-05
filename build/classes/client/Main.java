@@ -477,6 +477,60 @@ public interface Main {
      * @param arg1
      * @param arg0
      * @return
+     *     returns boolean
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "isFlightReserved", targetNamespace = "http://ws.middleRM/", className = "client.IsFlightReserved")
+    @ResponseWrapper(localName = "isFlightReservedResponse", targetNamespace = "http://ws.middleRM/", className = "client.IsFlightReservedResponse")
+    @Action(input = "http://ws.middleRM/Main/isFlightReservedRequest", output = "http://ws.middleRM/Main/isFlightReservedResponse")
+    public boolean isFlightReserved(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        int arg1);
+
+    /**
+     * 
+     * @param arg1
+     * @param arg0
+     * @return
+     *     returns boolean
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "isCarReserved", targetNamespace = "http://ws.middleRM/", className = "client.IsCarReserved")
+    @ResponseWrapper(localName = "isCarReservedResponse", targetNamespace = "http://ws.middleRM/", className = "client.IsCarReservedResponse")
+    @Action(input = "http://ws.middleRM/Main/isCarReservedRequest", output = "http://ws.middleRM/Main/isCarReservedResponse")
+    public boolean isCarReserved(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        String arg1);
+
+    /**
+     * 
+     * @param arg1
+     * @param arg0
+     * @return
+     *     returns boolean
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "isRoomReserved", targetNamespace = "http://ws.middleRM/", className = "client.IsRoomReserved")
+    @ResponseWrapper(localName = "isRoomReservedResponse", targetNamespace = "http://ws.middleRM/", className = "client.IsRoomReservedResponse")
+    @Action(input = "http://ws.middleRM/Main/isRoomReservedRequest", output = "http://ws.middleRM/Main/isRoomReservedResponse")
+    public boolean isRoomReserved(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        String arg1);
+
+    /**
+     * 
+     * @param arg1
+     * @param arg0
+     * @return
      *     returns java.lang.String
      */
     @WebMethod

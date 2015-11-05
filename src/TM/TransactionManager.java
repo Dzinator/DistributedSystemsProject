@@ -17,11 +17,12 @@ import LockManager.*;
  * follow-up question, how to make sure 2 transactions can't delete/create both customers locally before committing? put field in customer allowed transaction? 
  * */
 //TODO: implement all query methods after yousuf has responded
+//TODO: new/delete/reserve client methods with deadlocks return false, order of operations may corrupt state
 
 /*singleton object that handles transactions of the middle-ware*/
 public class TransactionManager implements server.ws.ResourceManager
 {
-	//unique string identifiers for strdata in locktable adressing
+	//unique string identifiers for strdata in lock table addressing
 	private static final String CUSTOMER = "cu";
 	private static final String HOTEL = "h";
 	private static final String FLIGHT = "f";
@@ -31,11 +32,13 @@ public class TransactionManager implements server.ws.ResourceManager
 	private static TransactionManager tm;
 	private static LockManager lm = new LockManager();
 	private static Main middleware;
+	static Thread enforcer;
 	
 	//hashmap of current transactions
 	static final HashMap<Integer, Transaction> trxns = new HashMap<Integer,Transaction>(1000);
 	
-	static final HashMap<Integer, Customer> customers = new HashMap<Integer, Customer>();
+	//hashmap of current customers
+	static final HashMap<Integer, Customer> customers = new HashMap<Integer, Customer>(1000);
 	
 	//various immutable global variables
 	public static final int READ = 0;
@@ -53,12 +56,12 @@ public class TransactionManager implements server.ws.ResourceManager
 	//initiate new transaction manager. Constructor is only called once and we only get 1 enforcer
 	private TransactionManager(Main m)
 	{
-		//setup Main reference to program
+		//setup Main reference for this class
 		middleware = m;
 		
-		//fire new thread to enforce TTL mechanism
-		new Thread(new TTLEnforcer(this)).start(); //TODO: CANNOT CREATE THREAD HERE, HALTS ON deployment of middleware
-		//tll.run();
+		//fire new thread to enforce TTL mechanism for transactions
+		enforcer = new Thread(new TTLEnforcer(this));
+		enforcer.start();
 	}
 	
 	//Start a new transaction and return its id
@@ -85,10 +88,10 @@ public class TransactionManager implements server.ws.ResourceManager
 		return true;
 	}
 	
-	//Attempt to commit the given transaction; return true upon success; upon deadlock, we abort, upon a false reponse from server we abort as well
+	//Attempt to commit the given transaction; return true upon success; upon deadlock, we abort, upon a false response from server we abort as well
 	@Override
 	public boolean commit(int transactionId) 
-	{//TODO: implement this method
+	{//TODO: Dont think we need failed operation exception, also no need for stack in transaction, dont think we need the failed operation thingy
 		 //check if transaction exists
 		 if (!trxns.containsKey(transactionId))
 			  return false;
@@ -97,7 +100,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		Transaction t = trxns.get(transactionId);
 		t.refreshTimeStamp(); //refresh time stamp so that TTLenforcer won't remove transaction
 		
-		//synchronize t to set isAborting to true
+		//synchronize t to set isTerminating to true
 		synchronized(t)
 		{
 			if ( t.isTerminating) //to prevent double aborts of a transaction
@@ -122,7 +125,7 @@ public class TransactionManager implements server.ws.ResourceManager
 				executeCommand(t.tid, cmd);
 				
 				//keep command in executed operations on stack
-				t.addOperationExecuted(cmd);
+				t.addOperationExecuted(cmd); //TODO: not sure about this
 			}
 			
 			//every operation committed to every server, we unlock all locks
@@ -143,7 +146,7 @@ public class TransactionManager implements server.ws.ResourceManager
 			e.printStackTrace();
 			abort(transactionId);
 		} 
-		catch (FailedOperationException e) 
+		catch (FailedOperationException e) //TODO: see above, but I think we don't need this
 		{
 			//we abort the transaction due to unexpected behaviour
 			e.printStackTrace();
@@ -160,29 +163,31 @@ public class TransactionManager implements server.ws.ResourceManager
 		return true;
 	}
 	
+	//alerts all the servers needed by the transaction that the transaction is starting
 	private void alertServersStart(Transaction t) 
 	{
 		for( Server s : t.getServers())
-			Main.services.get(s).proxy.start();
+			Main.services.get(s).proxy.startid(t.tid);
 	}
 
+	//alerts all the servers needed by the transaction that the transaction is committing
 	private void alertServersCommit(Transaction t) 
 	{
 		for( Server s : t.getServers())
 			Main.services.get(s).proxy.commit(t.tid);
 	}
 	
+	//alerts all the servers needed by the transaction that the transaction is aborting
 	private void alertServersAbort(Transaction t) 
 	{
 		for( Server s : t.getServers())
 			Main.services.get(s).proxy.abort(t.tid);
 	}
 	
-	
-
 	//executes the command and returns the values obtained to the user
 	private void executeCommand(int id, String cmd) throws FailedOperationException
 	{
+		//split the csv string
 		String[] args = cmd.split(",");
 		
 		//TODO: check here for throwing execption if returned input is invalid/ tell user results of actions
@@ -213,19 +218,19 @@ public class TransactionManager implements server.ws.ResourceManager
 								break; //nothing to do, only read operation
 			case "p" + HOTEL: Main.services.get(Server.Hotel).proxy.queryRoomsPrice(id,args[1]);
 							 break; //nothing to do, only read operation
-			case "+" + CUSTOMER:  Main.removeCustomerFromServices(id, Integer.parseInt(args[1]));
-						customers.remove(Integer.parseInt(args[1]));
-						break;//careful 2 cases here,id or  newcustomerId + id 
-			case "-" + CUSTOMER: Main.addCustomerToServices(id, Integer.parseInt(args[1]));
-						customers.put(Integer.parseInt(args[1]), new Customer(Integer.parseInt(args[1])));
-						break;
-			case "q" + CUSTOMER: String result = "Composite Bill for customer " + Integer.parseInt(args[1])+ " {\n\t\t" +
+			case "+" + CUSTOMER:  Main.addCustomerToServices(id, Integer.parseInt(args[1])); 
+								customers.get(Integer.parseInt(args[1])).isNew = false;
+								break;
+			case "-" + CUSTOMER: Main.removeCustomerFromServices(id, Integer.parseInt(args[1]));
+								customers.remove(Integer.parseInt(args[1]));
+								break;
+			case "q" + CUSTOMER: /*TODO: here and for read options elsewhere, not sure if it is still relevant to execute the read options String result = "Composite Bill for customer " + Integer.parseInt(args[1])+ " {\n\t\t" +
 					Main.services.get(Server.Car).proxy.queryCustomerInfo(id, Integer.parseInt(args[1])) + "\n\n\t\t" +
 					Main.services.get(Server.Hotel).proxy.queryCustomerInfo(id, Integer.parseInt(args[1])) + "\n\n\t\t" +
 					Main. services.get(Server.Flight).proxy.queryCustomerInfo(id, Integer.parseInt(args[1])) + "\n" +
-						"}\n";
+						"}\n";*/
 						break; //nothing to do, only read operation	
-			case "r" + FLIGHT:  Main.services.get(Server.Flight).proxy.reserveFlight(id, Integer.parseInt(args[1]), Integer.parseInt(args[2])); //and recreate the whole flight
+			case "r" + FLIGHT:  Main.services.get(Server.Flight).proxy.reserveFlight(id, Integer.parseInt(args[1]), Integer.parseInt(args[2]));
 					   			break;
 			case "r" + CAR: Main.services.get(Server.Car).proxy.reserveCar(id, Integer.parseInt(args[1]), args[2]);
 							break;
@@ -241,7 +246,8 @@ public class TransactionManager implements server.ws.ResourceManager
 	{
 		//get parameters from csv string
 		String[] args = cmd.split(",");
-		
+	
+		//get different type of locks depending on operation and object
 		switch (args[0])
 		{
 			case "+" + FLIGHT: lm.Lock(xid, FLIGHT + args[1], WRITE);
@@ -249,62 +255,44 @@ public class TransactionManager implements server.ws.ResourceManager
 			case "-" + FLIGHT: lm.Lock(xid, FLIGHT + args[1], WRITE);
 					   break;
 			case "q" + FLIGHT: lm.Lock(xid, FLIGHT + args[1], READ);
-					   break; //nothing to do, only read operation
+					   break;
 			case "p" + FLIGHT: lm.Lock(xid, FLIGHT + args[1], READ);
-					   break; //nothing to do, only read operation
+					   break;
 			case "+" + CAR: lm.Lock(xid, CAR + args[1], WRITE);
 					   break;	
 			case "-" + CAR: lm.Lock(xid, CAR + args[1], WRITE);
 			   		   break;
 			case "q" + CAR: lm.Lock(xid, CAR + args[1], READ);
-					   break; //nothing to do, only read operation
+					   break;
 			case "p" + CAR: lm.Lock(xid, CAR + args[1], READ);
-					   break; //nothing to do, only read operation
+					   break;
 			case "+" + HOTEL: lm.Lock(xid, HOTEL + args[1], WRITE);
 					   break;
 			case "-" + HOTEL: lm.Lock(xid, HOTEL + args[1], WRITE);
 	   		   		   break;
 			case "q" + HOTEL: lm.Lock(xid, HOTEL + args[1], READ);
-					   break; //nothing to do, only read operation
+					   break;
 			case "p" + HOTEL: lm.Lock(xid, HOTEL + args[1], READ);
-					   break; //nothing to do, only read operation
+					   break;
 			case "+" + CUSTOMER: lm.Lock(xid, CUSTOMER + args[1], WRITE);
-						break;//careful 2 cases here,id or  newcustomerId + id 
+						break;
 			case "-" + CUSTOMER: lm.Lock(xid, CUSTOMER + args[1], WRITE);
 						break;
 			case "q" + CUSTOMER: lm.Lock(xid, CUSTOMER + args[1], READ);
-						break; //nothing to do, only read operation
+						break;
 			case "r" + FLIGHT: lm.Lock(xid, CUSTOMER + args[1], READ);
-					   lm.Lock(xid, FLIGHT + args[2], WRITE);
-					   break;
+							   lm.Lock(xid, FLIGHT + args[2], WRITE);
+							   break;
 			case "r" + CAR: lm.Lock(xid, CUSTOMER + args[1], READ);
-			   		   lm.Lock(xid, CAR + args[2], WRITE);
-					   break;
+					   		   lm.Lock(xid, CAR + args[2], WRITE);
+							   break;
 			case "r" + HOTEL: lm.Lock(xid, CUSTOMER + args[1], READ);
-					   lm.Lock(xid, HOTEL + args[2], WRITE);
-					   break;
+							   lm.Lock(xid, HOTEL + args[2], WRITE);
+							   break;
 			default: break; //reserve itinerary is a composite of the above actions, no need to actually make a cmd of it
 		}
 	}
 	
-	
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-
 	//Aborts the given transaction and rollbacks all cmds that have been executed
 	@Override
 	public boolean abort(int transactionId) 
@@ -337,212 +325,221 @@ public class TransactionManager implements server.ws.ResourceManager
 		return true;
 	}
 
-	
-
 	//shuts down the servers if no transactions are currently executing on the servers
 	@Override
-	public boolean shutdown() {
-		//kill tllenforcer here
-		
-		/*LinkedList<Server> nonActiveServers = new LinkedList<Server>(Arrays.asList(Server.Car, Server.Flight, Server.Hotel));
-		
-		//iterate over each transaction, get all active servers involved in each of them, remove them from the list
-		//we are left with non active servers at the end (servers not involved in transactions)
-		for ( Entry<Integer, Transaction> e : trxns.entrySet())
+	public boolean shutdown() 
+	{
+		//get lock on trxns to prevent additions of transactions
+		synchronized (trxns)
 		{
-			for ( Server s : e.getValue().servers())
+			//check to see if transactions are still opened
+			if ( !trxns.isEmpty())
+				return false;
+			enforcer.interrupt(); //kill the TLL thread
+			
+			//call shutdown for each non active server
+			for (  Entry<Server, Connection> e: Main.services.entrySet())
 			{
-				if (nonActiveServers.contains(s))
-				{
-					nonActiveServers.remove(s);
-				}
+				e.getValue().proxy.shutdown();
 			}
 		}
 		
-		
-		if ( nonActiveServers.size() != 3)
-		{
-			//at least one server is still being used
-			return false;
-		}
-		
-		//call shutdown for each non active server
-		for ( Server s : nonActiveServers)
-		{
-			services.get(s).proxy.shutdown();
-		}
-		
-		//call shutdown for middleware
+		//terminate the middle-ware as well
+		System.out.println("Shutting down...");
 		System.exit(0);
-		// TODO Auto-generated method stub
-		 */		return false;
+		return true;
 	}
 
 	@Override
-	public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice) {
-		
+	public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice) 
+	{
 		  //check if transaction exists
 		  if (!trxns.containsKey(id))
 			  return false;
 		  
 		  //get transaction and update its structures
 		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		  Item flight = getFlight(flightNumber, t);
+		  flight.count += numSeats;
+		  flight.price = flightPrice > 0 ? flightPrice : flight.price;
+		  flight.isDeleted = false;
+		  
 		  t.addServer(Server.Flight);
 		  t.addOperationToExecute("+" + FLIGHT +"," + flightNumber + "," + numSeats +"," + flightPrice);
 		  return true;
 	}
 
 	@Override
-	public boolean deleteFlight(int id, int flightNumber) {
-		 
+	public boolean deleteFlight(int id, int flightNumber) 
+	{
 		 //check if transaction exists
-		  if (!trxns.containsKey(id))
+		 if (!trxns.containsKey(id))
 			  return false;
-		  
-		  //get transaction and update its structures
+		 
+		 //get transaction and update its structures
 		  Transaction t = trxns.get(id);
+		  
+		 //update write set of transaction with modified values
+		 Item flight = getFlight(flightNumber, t);
+		
+		 //check if there are reservations on the flight
+		 if ( !flight.isReserved)
+			 flight.isDeleted = true;
+			 
+		 
+		 //add operation to execute
 		  t.addServer(Server.Flight);
 		  t.addOperationToExecute("-" + FLIGHT +"," + flightNumber);
-		  return true;
+		  
+		  //return whether or not the flight was deleted
+		  return flight.isDeleted;
 	}
 
 	@Override
-	public int queryFlight(int id, int flightNumber) {
-		
+	public int queryFlight(int id, int flightNumber) 
+	{
 		 //check if transaction exists
 		  if (!trxns.containsKey(id))
-			  return -1;
-		  return 0;
-		 /* //get transaction and update its structures
+			  return 0;
+		  
+		  //get transaction and update its structures
 		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		 Item flight = getFlight(flightNumber, t);
+		 
+		 //update operations on transactions
 		  t.addServer(Server.Flight);
 		  t.addOperationToExecute("q" + FLIGHT +"," + flightNumber);
-		  return true;
-		
-		if (!trxns.containsKey(id))
-			  return 0;
-		 
-		 //get transaction
-		  Transaction t = trxns.get(id);
-		  t.addServer(Server.Flight); //add server to transaction
-			  
-		  try { //not sure
-			lm.Lock(id, FLIGHT + flightNumber, READ);
-			String cmd = "qf," + flightNumber;
-			t.addCommand(cmd);
-			
-			//System.out.println("hello 4 in queryflight, data item: " + "f" + flightNumber);
-			return services.get(Server.Flight).proxy.queryFlight(id, flightNumber);
-		  } 
-		  catch (DeadlockException e) 
-		  {
-			 System.out.println("hello exception in query flight");
-			return 0;
-		  }*/
 		  
-		
+		 if ( flight.isDeleted)
+			return 0;
+		 else
+			 return flight.count;
 	}
 
 	@Override
-	public int queryFlightPrice(int id, int flightNumber) {
-		 if (!trxns.containsKey(id))
+	public int queryFlightPrice(int id, int flightNumber) 
+	{ 
+		  //check if transaction exists
+		  if (!trxns.containsKey(id))
 			  return 0;
-		 
-		 //get transaction
-		  Transaction t = trxns.get(id);
-		  t.addServer(Server.Flight); //add server to transaction
-		
-		  return 0;
-		/*  
-		  try { //not sure
-			lm.Lock(id, FLIGHT + flightNumber, READ);
-			String cmd = "pf," + flightNumber;
-			t.addCommand(cmd);
-			
-			return services.get(Server.Flight).proxy.queryFlightPrice(id, flightNumber);
-		  } 
-		  catch (DeadlockException e) 
-		  {
-			return 0;
-		  }*/
 		  
-		
+		  //get transaction and update its structures
+		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		 Item flight = getFlight(flightNumber, t);
+		 
+		 //update operations on transactions
+		  t.addServer(Server.Flight);
+		  t.addOperationToExecute("p" + FLIGHT +"," + flightNumber);
+		  
+		 if ( flight.isDeleted)
+			return 0;
+		 else
+			 return flight.price;
 	}
 
 	@Override
-	public boolean addCars(int id, String location, int numCars, int carPrice) {
-
+	public boolean addCars(int id, String location, int numCars, int carPrice) 
+	{
 		 //check if transaction exists
 		  if (!trxns.containsKey(id))
 			  return false;
 		  
 		  //get transaction and update its structures
 		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		  Item car = getCar(location, t);
+		  car.count += numCars;
+		  car.price = carPrice > 0 ? carPrice : car.price;
+		  car.isDeleted = false;
+		  
 		  t.addServer(Server.Car);
 		  t.addOperationToExecute("+" + CAR +"," + location + "," + numCars +"," + carPrice);
 		  return true;
 	}
 
 	@Override
-	public boolean deleteCars(int id, String location) {
-		 
+	public boolean deleteCars(int id, String location) 
+	{
 		//check if transaction exists
 		  if (!trxns.containsKey(id))
 			  return false;
 		  
 		  //get transaction and update its structures
 		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		  Item car = getCar(location, t);
+		  
+		  //check if there are reservations on the cars
+			 if ( !car.isReserved)
+				 car.isDeleted = true;
+		  
+		  //add operation to execute
 		  t.addServer(Server.Car);
-		  t.addOperationToExecute("-" + CAR +"," + location); //should add n and price here for revert
-		  return true;
+		  t.addOperationToExecute("-" + CAR +"," + location);
+		  
+		//return whether or not the car was deleted
+		  return car.isDeleted;
 	}
 
 	@Override
-	public int queryCars(int id, String location) {
+	public int queryCars(int id, String location) 
+	{
+		 //check if transaction exists
 		 if (!trxns.containsKey(id))
 			  return 0;
-		 return 0;
-	/*	//get transaction
-		  Transaction t = trxns.get(id);
-		  t.addServer(Server.Car); //add server to transaction
-		 
+
+		 //check if transaction exists
+		  if (!trxns.containsKey(id))
+			  return 0;
 		  
-		  try { //not sure
-			lm.Lock(id, CAR + location, READ);
-			String cmd = "qc," + location;
-			t.addCommand(cmd);
-			
-			return services.get(Server.Car).proxy.queryCars(id, location);
-		  } 
-		  catch (DeadlockException e) 
-		  {
+		  //get transaction and update its structures
+		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		 Item car = getCar(location, t);
+		 
+		 //update operations on transactions
+		  t.addServer(Server.Car);
+		  t.addOperationToExecute("q" + CAR +"," + car);
+		  
+		 if ( car.isDeleted)
 			return 0;
-		  }*/
+		 else
+			 return car.count;
 	}
 
 	@Override
-	public int queryCarsPrice(int id, String location) {
+	public int queryCarsPrice(int id, String location) 
+	{
 		 if (!trxns.containsKey(id))
 			  return 0;
-		return 0; 
-		/*//get transaction
-		  Transaction t = trxns.get(id);
-		  t.addServer(Server.Car); //add server to transaction
-		 
+
+		 //check if transaction exists
+		  if (!trxns.containsKey(id))
+			  return 0;
 		  
-		  try { //not sure
-			lm.Lock(id, CAR + location, READ);
-			 String cmd = "pc," + location;
-			  t.addCommand(cmd);
-			  
-			  return services.get(Server.Car).proxy.queryCarsPrice(id, location);
-		  } 
-		  catch (DeadlockException e) 
-		  {
+		  //get transaction and update its structures
+		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		  Item car = getCar(location, t);
+		 
+		 //update operations on transactions
+		  t.addServer(Server.Car);
+		  t.addOperationToExecute("p" + CAR +"," + car);
+		  
+		 if ( car.isDeleted)
 			return 0;
-		  }
-		  */
-		
+		 else
+			 return car.price;
 	}
 
 	@Override
@@ -554,6 +551,13 @@ public class TransactionManager implements server.ws.ResourceManager
 		  
 		  //get transaction and update its structures
 		  Transaction t = trxns.get(id);
+		  
+		  Item room = getRoom(location, t);
+		  room.count += numRooms;
+		  room.price = roomPrice > 0 ? roomPrice : room.price;
+		  room.isDeleted = false;
+		  
+		  //update write set of transaction with modified values
 		  t.addServer(Server.Hotel);
 		  t.addOperationToExecute("+" + HOTEL +"," + location + "," + numRooms +"," + roomPrice);
 		  return true;
@@ -568,58 +572,66 @@ public class TransactionManager implements server.ws.ResourceManager
 		  
 		  //get transaction and update its structures
 		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		  Item room = getRoom(location, t);
+		  
+		  //check if there are reservations on the rooms
+			 if ( !room.isReserved)
+				 room.isDeleted = true;
+		  
+		 //add operation to execute
 		  t.addServer(Server.Hotel);
-		  t.addOperationToExecute("-" + HOTEL +"," + location); //should add price and number of rooms here 
-		  return true;		
+		  t.addOperationToExecute("-" + HOTEL +"," + location);
+		  
+		//return whether or not the room was deleted
+		  return room.isDeleted;
 	}
 
 	@Override
-	public int queryRooms(int id, String location) {
+	public int queryRooms(int id, String location) 
+	{
+		//check if transaction exists
 		 if (!trxns.containsKey(id))
 			  return 0;
+		  
+		  //get transaction and update its structures
+		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		  Item room = getRoom(location, t);
 		 
-		 return 0;
-		/* Transaction t = trxns.get(id);
-		  t.addServer(Server.Hotel); //add server to transaction
-		
+		 //update operations on transactions
+		  t.addServer(Server.Hotel);
+		  t.addOperationToExecute("q" + HOTEL +"," + location);
 		  
-		  try { //not sure
-			lm.Lock(id, HOTEL + location, READ);
-			  String cmd = "qh," + location;
-			  t.addCommand(cmd);
-			  
-			  return services.get(Server.Hotel).proxy.queryRooms(id, location);
-		  } 
-		  catch (DeadlockException e) 
-		  {
+		 if ( room.isDeleted)
 			return 0;
-		  }*/
-		  
-		
+		 else
+			return room.count;
 	}
 
 	@Override
-	public int queryRoomsPrice(int id, String location) {
+	public int queryRoomsPrice(int id, String location) 
+	{
+		 //check if transaction exists
 		 if (!trxns.containsKey(id))
 			  return 0;
-		 
-		 Transaction t = trxns.get(id);
-		  t.addServer(Server.Hotel); //add server to transaction
-		 
-		  return 0;
-		 /* try { //not sure
-			lm.Lock(id, HOTEL + location, READ);
-			 String cmd = "ph," + location;
-			  t.addCommand(cmd);
-			  
-			  return services.get(Server.Hotel).proxy.queryRoomsPrice(id, location);
-		  } 
-		  catch (DeadlockException e) 
-		  {
-			return 0;
-		  }*/
 		  
-		
+		  //get transaction and update its structures
+		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		  Item room = getRoom(location, t);
+		 
+		 //update operations on transactions
+		  t.addServer(Server.Hotel);
+		  t.addOperationToExecute("p" + HOTEL +"," + location);
+		  
+		 if ( room.isDeleted)
+			return 0;
+		 else
+			return room.price;		
 	}
 
 	@Override
@@ -649,20 +661,16 @@ public class TransactionManager implements server.ws.ResourceManager
 		 } 
 		 catch (DeadlockException e) 
 		 {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 			return -1;
-		}
+		 }
 		 
 		 //place customer in data structure
-		 customers.put(randomId, new Customer(randomId /*,t*/));
+		 customers.put(randomId, new Customer(randomId));
 		 
 		 //return the id
 		 return randomId;
 	}
 	
-	
-
 	@Override
 	public boolean newCustomerId(int id, int customerId) 
 	{
@@ -678,7 +686,6 @@ public class TransactionManager implements server.ws.ResourceManager
 		 t.addServer(Server.Flight); //add server to transaction
 		 t.addServer(Server.Hotel); //add server to transaction
 		 
-	
 		 //add to list of operations to be executed
 		 t.addOperationToExecute("+" + CUSTOMER +"," + customerId);
 		 
@@ -688,10 +695,8 @@ public class TransactionManager implements server.ws.ResourceManager
 		 } 
 		 catch (DeadlockException e) 
 		 {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 			return false;
-		}
+		 }
 		 
 		 //place customer in data structure
 		 customers.put(customerId, new Customer(customerId));
@@ -709,22 +714,18 @@ public class TransactionManager implements server.ws.ResourceManager
 		 if( !customers.containsKey(customerId))
 			  return false;
 		
-		 //get transaction
-		 Transaction t = trxns.get(id);
-		 
-		//check if transaction has right to reserve flight (either t is specified or the list is empty for it to reserve)
-		//if (!customers.get(customerId).exclusiveAccess.contains(t) && !customers.get(customerId).exclusiveAccess.isEmpty())
-		//	 return false;
 		try 
 		{
 			lm.Lock(id, CUSTOMER+customerId, WRITE);
 		} 
-		catch (DeadlockException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		catch (DeadlockException e) 
+		{
 			return false;
 		}
 		
+		 //get transaction
+		 Transaction t = trxns.get(id);
+		 
 		 //update its structures
 		 t.addServer(Server.Car); //add server to transaction
 		 t.addServer(Server.Flight); //add server to transaction
@@ -734,68 +735,151 @@ public class TransactionManager implements server.ws.ResourceManager
 		 t.addOperationToExecute("-" + CUSTOMER +"," + customerId);
 		 
 		 //place customer in data structure
-		 customers.remove(customerId); //TODO: SEE QUESTION 1 ABOVE, add check for transaction allowed to do  this?not sure
+		 customers.remove(customerId);
 		 
 		 //return the id
 		 return true;	
 	}
 
 	@Override
-	public String queryCustomerInfo(int id, int customerId) {
+	public String queryCustomerInfo(int id, int customerId) 
+	{
+		//check if transaction exists
 		 if (!trxns.containsKey(id))
 			  return "wrong transaction id";
+		 //check if customer actually exists
 		 if (!customers.containsKey(customerId))
-			 return "";
-		 return "";
-		/* Transaction t = trxns.get(id);
+			 return "customer doesn't exist";
+	
+		 try 
+		 { 
+			lm.Lock(id, CUSTOMER + customerId, READ);
+		 } 
+		  catch (DeadlockException e) 
+		  {
+
+		  }
+		 
+		 //get transaction
+		 Transaction t = trxns.get(id);
+		 
+		 //update transaction structure
 		 t.addServer(Server.Car); //add server to transaction
 		 t.addServer(Server.Flight); //add server to transaction
 		 t.addServer(Server.Hotel); //add server to transaction
-		 	
-		
 		 
-		 try { //not sure
-				lm.Lock(id, CUSTOMER + customerId, READ);
-				String cmd = "qcu," + customerId;
-				t.addCommand(cmd);
-				
-				return "hello";"Composite Bill for customer " + customerId + " {\n\t\t" +
-				   services.get(Server.Car).proxy.queryCustomerInfo(id, customerId) + "\n\n\t\t" +
-				   services.get(Server.Hotel).proxy.queryCustomerInfo(id, customerId) + "\n\n\t\t" +
-			       services.get(Server.Flight).proxy.queryCustomerInfo(id, customerId) + "\n" +
-				   "}\n";
-		  } 
-		  catch (DeadlockException e) 
-		  {
-			return "";
-		  } */
+		 //add to list of operations to be executed
+		 t.addOperationToExecute("qcu," + customerId);
+		 
+		 if(customers.get(customerId).isNew)
+		 {
+			 return "new customer cant do shit"; //TODO: only check local customer reservations, otherwise query databases
+		 }
+			 
+		 
+		 //get all csv (of the form  key,num,price) bills from different servers
+		 String[] flight = Main.services.get(Server.Flight).proxy.queryCustomerInfo(id, customerId).split("\n");
+		 String[] car = Main.services.get(Server.Car).proxy.queryCustomerInfo(id, customerId).split("\n");
+		 String[] room = Main.services.get(Server.Hotel).proxy.queryCustomerInfo(id, customerId).split("\n");
+		 
+		 String Bill = "Flights :\n{\n\t";
+		 //iterate over all records in flight bill
+		 for (String reservedItem : flight)
+		 {
+			 //break record into components
+			 String[] args = reservedItem.split(",");
+			 
+			 String key = FLIGHT + args[0];
+			 if ( t.writeSet.containsKey(key))
+			 {
+				 Item i = t.writeSet.get(key);
+				 Bill = args[0] + " : " + i.count + " seats reserved : $" + (i.price * i.count) + "\n\t";
+			 }
+			 else
+			 {
+				 Bill += args[0] + " : " + args[1] + " seats reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
+			 }
+			 
+		 }
+		 Bill += "}\n Cars :\n{\n\t";
+		//iterate over all records in car bill
+		 for (String reservedItem : car)
+		 {
+			 //break record into components
+			 String[] args = reservedItem.split(",");
+			 
+			 String key = CAR + args[0];
+			 if ( t.writeSet.containsKey(key))
+			 {
+				 Item i = t.writeSet.get(key);
+				 Bill = args[0] + " : " + i.count + " cars reserved : $" + (i.price * i.count) + "\n\t";
+			 }
+			 else
+			 {
+				 Bill += args[0] + " : " + args[1] + " cars reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
+			 }
+			 
+		 }
+		 Bill += "}\n Rooms :\n{\n\t";
+		//iterate over all records in hotel bill
+		 for (String reservedItem : room)
+		 {
+			 //break record into components
+			 String[] args = reservedItem.split(",");
+			 
+			 String key = HOTEL + args[0];
+			 if ( t.writeSet.containsKey(key))
+			 {
+				 Item i = t.writeSet.get(key);
+				 Bill = args[0] + " : " + i.count + " rooms reserved : $" + (i.price * i.count) + "\n\t";
+			 }
+			 else
+			 {
+				 Bill += args[0] + " : " + args[1] + " rooms reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
+			 }	 
+		 }
+		 Bill += "}\n";
+		 
+		 return Bill; 
 	}
 
 	@Override
 	public boolean reserveFlight(int id, int customerId, int flightNumber) 
 	{
-		//check if transaction exists
+		  //check if transaction exists
 		  if (!trxns.containsKey(id))
 			  return false;
 		  if( !customers.containsKey(customerId))
 			  return false;
 		  
+		  try 
+		  {
+			  //acquire lock on customer
+		 	 lm.Lock(id, CUSTOMER + customerId, READ);
+		  } 
+		  catch (DeadlockException e) 
+		  {
+
+		  }
+		  
 		  //get transaction and update its structures
 		  Transaction t = trxns.get(id);
 		  
-		//check if transaction has right to reserve flight (either t is specified or the list is empty for it to reserve)
-		//if (!customers.get(customerId).exclusiveAccess.contains(t) && !customers.get(customerId).exclusiveAccess.isEmpty())
-		//	 return false;
-		try 
-		{
-			lm.Lock(id, CUSTOMER + customerId, READ);
-		} 
-		catch (DeadlockException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		}
+		  //update write set of transaction with modified values
+		  Item flight = getFlight(flightNumber, t);
 		  
+		  //get customer
+		  Customer c = customers.get(customerId);
+		  
+		  //can't add reservation if no seats or flight is deleted
+		  if ( flight.isDeleted ||  flight.count == 0)
+			  return false;
+		
+		  //update values of flight and customer data structures
+		  flight.isReserved = true;
+		  flight.count -= 1;
+		  c.addReservation(flight);
+
 		 //update the transaction fields
 		  t.addServer(Server.Flight);
 		  t.addOperationToExecute("r" + FLIGHT +"," + customerId + "," + flightNumber);
@@ -811,26 +895,38 @@ public class TransactionManager implements server.ws.ResourceManager
 		if( !customers.containsKey(customerId))
 			  return false;
 		  
-		//get transaction and update its structures
-		Transaction t = trxns.get(id);
+		  try 
+		  {
+			  //acquire lock on customer
+		 	 lm.Lock(id, CUSTOMER + customerId, READ);
+		  } 
+		  catch (DeadlockException e) 
+		  {
+
+		  }
 		  
-		//check if transaction has right to reserve flight (either t is specified or the list is empty for it to reserve)
-		//if (!customers.get(customerId).exclusiveAccess.contains(t) && !customers.get(customerId).exclusiveAccess.isEmpty())
-		//	 return false;
-		try 
-		{
-			lm.Lock(id, CUSTOMER+customerId, READ);
-		} 
-		catch (DeadlockException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		}
+		  //get transaction and update its structures
+		  Transaction t = trxns.get(id);
+		  
+		  //update write set of transaction with modified values
+		  Item car = getCar(location, t);
+		  
+		  //get customer
+		  Customer c = customers.get(customerId);
+		  
+		  //can't add reservation if no cars or car is deleted
+		  if ( car.isDeleted ||  car.count == 0)
+			  return false;
 		
-		//update the transaction fields
-		t.addServer(Server.Car);
-		t.addOperationToExecute("r" + CAR +"," + customerId + "," +  location);
-		return true;
+		  //update values of car and customer data structures
+		  car.isReserved = true;
+		  car.count -= 1;
+		  c.addReservation(car);
+
+		 //update the transaction fields
+		  t.addServer(Server.Car);
+		  t.addOperationToExecute("r" + CAR +"," + customerId + "," + location);
+		  return true;
 	}
 
 	@Override
@@ -842,30 +938,40 @@ public class TransactionManager implements server.ws.ResourceManager
 		if( !customers.containsKey(customerId))
 			  return false;
 		  
-		//get transaction and update its structures
-		Transaction t = trxns.get(id);
+		  try 
+		  {
+			  //acquire lock on customer
+		 	 lm.Lock(id, CUSTOMER + customerId, READ);
+		  } 
+		  catch (DeadlockException e) 
+		  {
+
+		  }
 		  
-		//check if transaction has right to reserve flight (either t is specified or the list is empty for it to reserve)
-		//if (!customers.get(customerId).exclusiveAccess.contains(t) && !customers.get(customerId).exclusiveAccess.isEmpty())
-		//	 return false;
-		try 
-		{
-			lm.Lock(id, CUSTOMER+customerId, READ);
-		} 
-		catch (DeadlockException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		}
+		  //get transaction and update its structures
+		  Transaction t = trxns.get(id);
 		  
-		//update the transaction fields
-		t.addServer(Server.Hotel);
-		t.addOperationToExecute("r" + HOTEL +"," + customerId + "," + location);
-		return true; 
+		  //update write set of transaction with modified values
+		  Item room = getCar(location, t);
+		  
+		  //get customer
+		  Customer c = customers.get(customerId);
+		  
+		  //can't add reservation if no rooms or room is deleted
+		  if ( room.isDeleted || room.count == 0)
+			  return false;
+		
+		  //update values of room and customer data structures
+		  room.isReserved = true;
+		  room.count -= 1;
+		  c.addReservation(room);
+
+		 //update the transaction fields
+		  t.addServer(Server.Hotel);
+		  t.addOperationToExecute("r" + HOTEL +"," + customerId + "," + location);
+		  return true;
 	}
 
-	
-	//TODO: what if piling up commands at certain point fails, say after querying all flights, query car returns false? we need to revert back and undo all commands in transaction
 	@Override
 	public synchronized boolean reserveItinerary(int id, int customerId, Vector flightNumbers, String location, boolean car, boolean room) 
 	{
@@ -877,19 +983,17 @@ public class TransactionManager implements server.ws.ResourceManager
 		//get transaction and update its structures
 		Transaction t = trxns.get(id);
 		  
-		//check if transaction has right to reserve flight (either t is specified or the list is empty for it to reserve)
-		//if (!customers.get(customerId).exclusiveAccess.contains(t) && !customers.get(customerId).exclusiveAccess.isEmpty())
-		//	 return false;
 		try 
 		{
+			//acquire lock on customer
 			lm.Lock(id, CUSTOMER + customerId, READ);
 		} 
-		catch (DeadlockException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
+		catch (DeadlockException e) 
+		{
+
 		}
 		
+		//update transaction data structures
 		 if (!flightNumbers.isEmpty()) t.addServer(Server.Flight); //add server to transaction
 		 if (car) t.addServer(Server.Car); //add server to transaction
 		 if (room)t.addServer(Server.Hotel); //add server to transaction
@@ -897,12 +1001,12 @@ public class TransactionManager implements server.ws.ResourceManager
 		//check for available slots on flights
     	for(Object flightNum : flightNumbers)
     	{
-    			//get lock on flight number
-    			int flightNumber =  Integer.parseInt(flightNum.toString());
-    		
-    			//query flight
-    			if (queryFlight(id, flightNumber) == 0)
-    				return false;
+			//get lock on flight number
+			int flightNumber =  Integer.parseInt(flightNum.toString());
+		
+			//query flight
+			if (queryFlight(id, flightNumber) == 0)
+				return false;
     	}
 		 
     	//check for available car, if needed
@@ -937,13 +1041,131 @@ public class TransactionManager implements server.ws.ResourceManager
     	return true;
 	}
 
+	//gets the image of a database flight item for a transaction and updates the write set of the latter
+	private Item getFlight(int fid, Transaction t)
+	{
+		//create unique key built on fid
+		String key = FLIGHT + fid;
+		
+		//lock object in the lock manager so that the database can never be updated by another transaction
+		try 
+		{
+			lm.Lock(t.tid, key, READ);
+		} 
+		catch (DeadlockException e) 
+		{
+			
+		}
+		
+		//check if transaction t contains this object with the given key
+		if ( !t.writeSet.containsKey(key))
+		{
+			//query database for most up to date image of item on the server
+			int seatsAvailable = Main.services.get(Server.Flight).proxy.queryFlight(t.tid, fid);
+			int price = Main.services.get(Server.Flight).proxy.queryFlightPrice(t.tid, fid);
+			boolean reserved =  Main.services.get(Server.Flight).proxy.isFlightReserved(t.tid, fid);
+			
+			//create new item
+			Item flight = new Item(seatsAvailable, price, reserved);
+			
+			//add item to transactions write set
+			t.writeSet.put(key, flight);
+		}
+		
+		return t.writeSet.get(key);
+	}
+	
+	//gets the image of a database car item for a transaction and updates the write set of the latter
+	private Item getCar(String location, Transaction t)
+	{
+		//create unique key built on fid
+		String key = CAR + location;
+		
+		//lock object in the lock manager so that the database can never be updated by another transaction
+		try 
+		{
+			lm.Lock(t.tid, key, READ);
+		} 
+		catch (DeadlockException e) 
+		{
+			
+		}
+		
+		//check if transaction t contains this object with the given key
+		if ( !t.writeSet.containsKey(key))
+		{
+			//query database for most up to date image of item on the server
+			int carsAvailable = Main.services.get(Server.Car).proxy.queryCars(t.tid, location);
+			int price = Main.services.get(Server.Car).proxy.queryCarsPrice(t.tid, location);
+			boolean reserved = Main.services.get(Server.Car).proxy.isCarReserved(t.tid, location);
+			
+			//create new item
+			Item car = new Item(carsAvailable, price, reserved);
+			
+			//add item to transactions write set
+			t.writeSet.put(key, car);
+		}
+		
+		return t.writeSet.get(key);
+	}
+	
+	//gets the image of a database room item for a transaction and updates the write set of the latter
+	private Item getRoom(String location, Transaction t)
+	{
+		//create unique key built on fid
+		String key = HOTEL + location;
+		
+		//lock object in the lock manager so that the database can never be updated by another transaction
+		try 
+		{
+			lm.Lock(t.tid, key, READ);
+		} 
+		catch (DeadlockException e) 
+		{
+			
+		}
+		
+		//check if transaction t contains this object with the given key
+		if ( !t.writeSet.containsKey(key))
+		{
+			//query database for most up to date image of item on the server
+			int roomsAvailable = Main.services.get(Server.Hotel).proxy.queryRooms(t.tid, location);
+			int price = Main.services.get(Server.Hotel).proxy.queryRoomsPrice(t.tid, location);
+			boolean reserved = Main.services.get(Server.Hotel).proxy.isRoomReserved(t.tid, location);
+			
+			//create new item
+			Item room = new Item(roomsAvailable, price, reserved);
+			
+			//add item to transactions write set
+			t.writeSet.put(key, room);
+		}
+		return t.writeSet.get(key);
+	}
+
+	@Override
+	public boolean isFlightReserved(int id, int fid) 
+	{
+		return Main.services.get(Server.Flight).proxy.isFlightReserved(id, fid);
+	}
+
+	@Override
+	public boolean isCarReserved(int id, String location) 
+	{
+		return Main.services.get(Server.Car).proxy.isCarReserved(id, location);
+	}
+
+	@Override
+	public boolean isRoomReserved(int id, String location) 
+	{
+		return Main.services.get(Server.Hotel).proxy.isRoomReserved(id, location);
+	}
 	
 	
 	//rollsback operations performed so far by the transaction
-	private void rollbackOperations(int id) 
+	/*private void rollbackOperations(int id) 
 	{
 		
-		//TODO: implement this
+		//TODO: implement this (DONT THINK we need to since we deferred the updates
 		
 		//get trx
 	/*	Transaction t = trxns.get(id);
@@ -997,21 +1219,6 @@ public class TransactionManager implements server.ws.ResourceManager
 						   break;
 				default: break; //reserve itinerary is a composite of the above actions, no need to actually make a cmd of it
 			}
-		}*/
-	}
-	
-	
-	
-}
-
-class Customer
-{
-	public final int id;	
-	//public final LinkedList<Transaction> exclusiveAccess = new LinkedList<Transaction>();
-	public Customer(int pid /*, Transaction t*/)
-	{
-		id = pid;
-		//exclusiveAccess.add(t);
-	}
-
+		}
+	}*/
 }

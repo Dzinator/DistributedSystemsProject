@@ -13,12 +13,17 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 import java.util.Vector;
+
 import javax.jws.WebService;
+
 import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
+
 import LockManager.*; //for ass2
 import TM.*;
+
 import javax.naming.NamingException;
+
 import org.apache.catalina.startup.Tomcat;
 
 @WebService
@@ -30,7 +35,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 	//customer support
 	
 	
-	public enum Server {Flight, Car, Hotel};
+	public enum Server {Flight, Car, Hotel;}
 	
 	//singleton object for transaction manager
 	private final TransactionManager tm = TransactionManager.getInstance(this);
@@ -203,8 +208,6 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		return tm.newCustomer(id);
 	}
 	
-	
-
 	@Override
 	public boolean newCustomerId(int id, int customerId)
 	{
@@ -415,6 +418,7 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 	 */
 	public boolean shutdown() {
 		
+		return tm.shutdown();
 		/*LinkedList<Server> nonActiveServers = new LinkedList<Server>(Arrays.asList(Server.Car, Server.Flight, Server.Hotel));
 		
 		//iterate over each transaction, get all active servers involved in each of them, remove them from the list
@@ -446,6 +450,23 @@ public class Main implements server.ws.ResourceManager { //server.ws.ResourceMan
 		//call shutdown for middleware
 		System.exit(0);
 		// TODO Auto-generated method stub*/
-		return false;
+	}
+
+	@Override
+	public boolean isFlightReserved(int id, int fid) 
+	{
+		return services.get(Server.Flight).proxy.isFlightReserved(id, fid);
+	}
+
+	@Override
+	public boolean isCarReserved(int id, String location) 
+	{
+		return services.get(Server.Car).proxy.isCarReserved(id, location);
+	}
+
+	@Override
+	public boolean isRoomReserved(int id, String location) 
+	{
+		return services.get(Server.Hotel).proxy.isRoomReserved(id, location);
 	}
 }

@@ -81,6 +81,24 @@ public interface ResourceManager {
 
     /**
      * 
+     * @param arg1
+     * @param arg0
+     * @return
+     *     returns java.lang.String
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "queryCustomerInfo", targetNamespace = "http://ws.server/", className = "middleRM.ws.QueryCustomerInfo")
+    @ResponseWrapper(localName = "queryCustomerInfoResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.QueryCustomerInfoResponse")
+    @Action(input = "http://ws.server/ResourceManager/queryCustomerInfoRequest", output = "http://ws.server/ResourceManager/queryCustomerInfoResponse")
+    public String queryCustomerInfo(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        int arg1);
+
+    /**
+     * 
      * @param arg3
      * @param arg2
      * @param arg1
@@ -477,17 +495,53 @@ public interface ResourceManager {
      * @param arg1
      * @param arg0
      * @return
-     *     returns java.lang.String
+     *     returns boolean
      */
     @WebMethod
     @WebResult(targetNamespace = "")
-    @RequestWrapper(localName = "queryCustomerInfo", targetNamespace = "http://ws.server/", className = "middleRM.ws.QueryCustomerInfo")
-    @ResponseWrapper(localName = "queryCustomerInfoResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.QueryCustomerInfoResponse")
-    @Action(input = "http://ws.server/ResourceManager/queryCustomerInfoRequest", output = "http://ws.server/ResourceManager/queryCustomerInfoResponse")
-    public String queryCustomerInfo(
+    @RequestWrapper(localName = "isFlightReserved", targetNamespace = "http://ws.server/", className = "middleRM.ws.IsFlightReserved")
+    @ResponseWrapper(localName = "isFlightReservedResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.IsFlightReservedResponse")
+    @Action(input = "http://ws.server/ResourceManager/isFlightReservedRequest", output = "http://ws.server/ResourceManager/isFlightReservedResponse")
+    public boolean isFlightReserved(
         @WebParam(name = "arg0", targetNamespace = "")
         int arg0,
         @WebParam(name = "arg1", targetNamespace = "")
         int arg1);
+
+    /**
+     * 
+     * @param arg1
+     * @param arg0
+     * @return
+     *     returns boolean
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "isCarReserved", targetNamespace = "http://ws.server/", className = "middleRM.ws.IsCarReserved")
+    @ResponseWrapper(localName = "isCarReservedResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.IsCarReservedResponse")
+    @Action(input = "http://ws.server/ResourceManager/isCarReservedRequest", output = "http://ws.server/ResourceManager/isCarReservedResponse")
+    public boolean isCarReserved(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        String arg1);
+
+    /**
+     * 
+     * @param arg1
+     * @param arg0
+     * @return
+     *     returns boolean
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "isRoomReserved", targetNamespace = "http://ws.server/", className = "middleRM.ws.IsRoomReserved")
+    @ResponseWrapper(localName = "isRoomReservedResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.IsRoomReservedResponse")
+    @Action(input = "http://ws.server/ResourceManager/isRoomReservedRequest", output = "http://ws.server/ResourceManager/isRoomReservedResponse")
+    public boolean isRoomReserved(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        String arg1);
 
 }

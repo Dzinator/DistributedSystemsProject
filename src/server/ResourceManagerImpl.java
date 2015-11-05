@@ -6,6 +6,7 @@
 package server;
 
 import java.util.*;
+
 import javax.jws.WebService;
 
 
@@ -446,7 +447,7 @@ public class ResourceManagerImpl implements server.ws.ResourceManager {
 	@Override
 	public boolean startid(int tid) {
 		// TODO Auto-generated method stub
-		System.out.println("Transaction initiated with tid " + tid);
+		System.out.println("Transaction initiated : " + tid);
 		return true;
 	}
 
@@ -471,5 +472,32 @@ public class ResourceManagerImpl implements server.ws.ResourceManager {
 		System.out.println("Shutting down...");
 		System.exit(0);
 		return false;
+	}
+
+	@Override
+	public boolean isFlightReserved(int id, int fid) {
+		 ReservableItem i = (ReservableItem) readData(id, "" + fid);
+		 if ( i == null)
+			 return false;
+		 else
+			 return i.getReserved() > 0;
+	}
+
+	@Override
+	public boolean isCarReserved(int id, String location) {
+		 ReservableItem i = (ReservableItem) readData(id, location);
+		 if ( i == null)
+			 return false;
+		 else
+			 return i.getReserved() > 0;
+	}
+
+	@Override
+	public boolean isRoomReserved(int id, String location) {
+		 ReservableItem i = (ReservableItem) readData(id, location);
+		 if ( i == null)
+			 return false;
+		 else
+			 return i.getReserved() > 0;
 	}
 }

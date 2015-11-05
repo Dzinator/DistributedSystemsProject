@@ -1,8 +1,5 @@
 package TM;
-
 import java.util.Map.Entry;
-
-//import middleRM.ws.TTLEnforcerSlave;
 
 //thread to handle the TTL mechanism for transactions
 class TTLEnforcer implements Runnable
@@ -28,17 +25,22 @@ class TTLEnforcer implements Runnable
 				if ( e.getValue().getTimestamp() < System.currentTimeMillis())
 				{
 					//dispatch new thread slave to handle the abort calls
-					new TTLEnforcerSlave(tm, e.getValue()).run();
+					new Thread(new TTLEnforcerSlave(tm, e.getValue())).start();
 				}
 			}
 			
 			//sleep for a time inversely proportional to the number of currently opened transactions
 			Thread.sleep(Math.max(TransactionManager.TTL - 2 * TransactionManager.trxns.size(), 0)); 
 		} 
-		//if sleep interrupted, just restart the method
-		catch(Exception e)
+		
+		catch (InterruptedException e)
 		{
-			run();
+			 return; //kill thread
+		}
+		catch(Exception e) //if problem just restart thread
+		{
+			TransactionManager.enforcer = new Thread(new TTLEnforcer(tm));
+			TransactionManager.enforcer.start();
 		}
 	 }
 	}

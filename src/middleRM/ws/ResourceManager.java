@@ -17,6 +17,7 @@
 package middleRM.ws;
 
 import java.util.*;
+
 import javax.jws.WebService;
 import javax.jws.WebMethod;
 
@@ -154,5 +155,14 @@ public interface ResourceManager {
     
     @WebMethod
     public boolean shutdown();
-    			
+    
+    @WebMethod
+    public boolean isFlightReserved(int id, int fid);
+    
+    @WebMethod
+    public boolean isCarReserved(int id, String location);
+    
+    @WebMethod
+    public boolean isRoomReserved(int id, String location);
+    					
 }

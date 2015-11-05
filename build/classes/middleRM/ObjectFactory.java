@@ -27,7 +27,10 @@ public class ObjectFactory {
     private final static QName _Shutdown_QNAME = new QName("http://ws.server/", "shutdown");
     private final static QName _DeleteCarsResponse_QNAME = new QName("http://ws.server/", "deleteCarsResponse");
     private final static QName _DeleteFlightResponse_QNAME = new QName("http://ws.server/", "deleteFlightResponse");
+    private final static QName _IsRoomReserved_QNAME = new QName("http://ws.server/", "isRoomReserved");
+    private final static QName _IsCarReserved_QNAME = new QName("http://ws.server/", "isCarReserved");
     private final static QName _Abort_QNAME = new QName("http://ws.server/", "abort");
+    private final static QName _IsCarReservedResponse_QNAME = new QName("http://ws.server/", "isCarReservedResponse");
     private final static QName _ReserveItineraryResponse_QNAME = new QName("http://ws.server/", "reserveItineraryResponse");
     private final static QName _QueryRoomsResponse_QNAME = new QName("http://ws.server/", "queryRoomsResponse");
     private final static QName _ShutdownResponse_QNAME = new QName("http://ws.server/", "shutdownResponse");
@@ -46,12 +49,15 @@ public class ObjectFactory {
     private final static QName _QueryFlightPrice_QNAME = new QName("http://ws.server/", "queryFlightPrice");
     private final static QName _ReserveRoomResponse_QNAME = new QName("http://ws.server/", "reserveRoomResponse");
     private final static QName _QueryRoomsPriceResponse_QNAME = new QName("http://ws.server/", "queryRoomsPriceResponse");
+    private final static QName _IsRoomReservedResponse_QNAME = new QName("http://ws.server/", "isRoomReservedResponse");
     private final static QName _AbortResponse_QNAME = new QName("http://ws.server/", "abortResponse");
     private final static QName _StartResponse_QNAME = new QName("http://ws.server/", "startResponse");
     private final static QName _Commit_QNAME = new QName("http://ws.server/", "commit");
     private final static QName _QueryCarsPrice_QNAME = new QName("http://ws.server/", "queryCarsPrice");
+    private final static QName _IsFlightReserved_QNAME = new QName("http://ws.server/", "isFlightReserved");
     private final static QName _StartidResponse_QNAME = new QName("http://ws.server/", "startidResponse");
     private final static QName _QueryFlightResponse_QNAME = new QName("http://ws.server/", "queryFlightResponse");
+    private final static QName _IsFlightReservedResponse_QNAME = new QName("http://ws.server/", "isFlightReservedResponse");
     private final static QName _QueryCarsResponse_QNAME = new QName("http://ws.server/", "queryCarsResponse");
     private final static QName _DeleteFlight_QNAME = new QName("http://ws.server/", "deleteFlight");
     private final static QName _DeleteCustomer_QNAME = new QName("http://ws.server/", "deleteCustomer");
@@ -91,6 +97,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link IsFlightReserved }
+     * 
+     */
+    public IsFlightReserved createIsFlightReserved() {
+        return new IsFlightReserved();
+    }
+
+    /**
      * Create an instance of {@link QueryCarsPrice }
      * 
      */
@@ -120,6 +134,14 @@ public class ObjectFactory {
      */
     public StartResponse createStartResponse() {
         return new StartResponse();
+    }
+
+    /**
+     * Create an instance of {@link IsRoomReservedResponse }
+     * 
+     */
+    public IsRoomReservedResponse createIsRoomReservedResponse() {
+        return new IsRoomReservedResponse();
     }
 
     /**
@@ -267,11 +289,35 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link IsCarReservedResponse }
+     * 
+     */
+    public IsCarReservedResponse createIsCarReservedResponse() {
+        return new IsCarReservedResponse();
+    }
+
+    /**
      * Create an instance of {@link Abort }
      * 
      */
     public Abort createAbort() {
         return new Abort();
+    }
+
+    /**
+     * Create an instance of {@link IsCarReserved }
+     * 
+     */
+    public IsCarReserved createIsCarReserved() {
+        return new IsCarReserved();
+    }
+
+    /**
+     * Create an instance of {@link IsRoomReserved }
+     * 
+     */
+    public IsRoomReserved createIsRoomReserved() {
+        return new IsRoomReserved();
     }
 
     /**
@@ -475,6 +521,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link IsFlightReservedResponse }
+     * 
+     */
+    public IsFlightReservedResponse createIsFlightReservedResponse() {
+        return new IsFlightReservedResponse();
+    }
+
+    /**
      * Create an instance of {@link QueryFlightResponse }
      * 
      */
@@ -510,12 +564,39 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link IsRoomReserved }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://ws.server/", name = "isRoomReserved")
+    public JAXBElement<IsRoomReserved> createIsRoomReserved(IsRoomReserved value) {
+        return new JAXBElement<IsRoomReserved>(_IsRoomReserved_QNAME, IsRoomReserved.class, null, value);
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link IsCarReserved }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://ws.server/", name = "isCarReserved")
+    public JAXBElement<IsCarReserved> createIsCarReserved(IsCarReserved value) {
+        return new JAXBElement<IsCarReserved>(_IsCarReserved_QNAME, IsCarReserved.class, null, value);
+    }
+
+    /**
      * Create an instance of {@link JAXBElement }{@code <}{@link Abort }{@code >}}
      * 
      */
     @XmlElementDecl(namespace = "http://ws.server/", name = "abort")
     public JAXBElement<Abort> createAbort(Abort value) {
         return new JAXBElement<Abort>(_Abort_QNAME, Abort.class, null, value);
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link IsCarReservedResponse }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://ws.server/", name = "isCarReservedResponse")
+    public JAXBElement<IsCarReservedResponse> createIsCarReservedResponse(IsCarReservedResponse value) {
+        return new JAXBElement<IsCarReservedResponse>(_IsCarReservedResponse_QNAME, IsCarReservedResponse.class, null, value);
     }
 
     /**
@@ -681,6 +762,15 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link IsRoomReservedResponse }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://ws.server/", name = "isRoomReservedResponse")
+    public JAXBElement<IsRoomReservedResponse> createIsRoomReservedResponse(IsRoomReservedResponse value) {
+        return new JAXBElement<IsRoomReservedResponse>(_IsRoomReservedResponse_QNAME, IsRoomReservedResponse.class, null, value);
+    }
+
+    /**
      * Create an instance of {@link JAXBElement }{@code <}{@link AbortResponse }{@code >}}
      * 
      */
@@ -717,6 +807,15 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link IsFlightReserved }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://ws.server/", name = "isFlightReserved")
+    public JAXBElement<IsFlightReserved> createIsFlightReserved(IsFlightReserved value) {
+        return new JAXBElement<IsFlightReserved>(_IsFlightReserved_QNAME, IsFlightReserved.class, null, value);
+    }
+
+    /**
      * Create an instance of {@link JAXBElement }{@code <}{@link StartidResponse }{@code >}}
      * 
      */
@@ -732,6 +831,15 @@ public class ObjectFactory {
     @XmlElementDecl(namespace = "http://ws.server/", name = "queryFlightResponse")
     public JAXBElement<QueryFlightResponse> createQueryFlightResponse(QueryFlightResponse value) {
         return new JAXBElement<QueryFlightResponse>(_QueryFlightResponse_QNAME, QueryFlightResponse.class, null, value);
+    }
+
+    /**
+     * Create an instance of {@link JAXBElement }{@code <}{@link IsFlightReservedResponse }{@code >}}
+     * 
+     */
+    @XmlElementDecl(namespace = "http://ws.server/", name = "isFlightReservedResponse")
+    public JAXBElement<IsFlightReservedResponse> createIsFlightReservedResponse(IsFlightReservedResponse value) {
+        return new JAXBElement<IsFlightReservedResponse>(_IsFlightReservedResponse_QNAME, IsFlightReservedResponse.class, null, value);
     }
 
     /**
