@@ -66,39 +66,6 @@ public interface ResourceManager {
 
     /**
      * 
-     * @param arg0
-     * @return
-     *     returns boolean
-     */
-    @WebMethod
-    @WebResult(targetNamespace = "")
-    @RequestWrapper(localName = "commit", targetNamespace = "http://ws.server/", className = "middleRM.ws.Commit")
-    @ResponseWrapper(localName = "commitResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.CommitResponse")
-    @Action(input = "http://ws.server/ResourceManager/commitRequest", output = "http://ws.server/ResourceManager/commitResponse")
-    public boolean commit(
-        @WebParam(name = "arg0", targetNamespace = "")
-        int arg0);
-
-    /**
-     * 
-     * @param arg1
-     * @param arg0
-     * @return
-     *     returns java.lang.String
-     */
-    @WebMethod
-    @WebResult(targetNamespace = "")
-    @RequestWrapper(localName = "queryCustomerInfo", targetNamespace = "http://ws.server/", className = "middleRM.ws.QueryCustomerInfo")
-    @ResponseWrapper(localName = "queryCustomerInfoResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.QueryCustomerInfoResponse")
-    @Action(input = "http://ws.server/ResourceManager/queryCustomerInfoRequest", output = "http://ws.server/ResourceManager/queryCustomerInfoResponse")
-    public String queryCustomerInfo(
-        @WebParam(name = "arg0", targetNamespace = "")
-        int arg0,
-        @WebParam(name = "arg1", targetNamespace = "")
-        int arg1);
-
-    /**
-     * 
      * @param arg3
      * @param arg2
      * @param arg1
@@ -543,5 +510,38 @@ public interface ResourceManager {
         int arg0,
         @WebParam(name = "arg1", targetNamespace = "")
         String arg1);
+
+    /**
+     * 
+     * @param arg0
+     * @return
+     *     returns boolean
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "commit", targetNamespace = "http://ws.server/", className = "middleRM.ws.Commit")
+    @ResponseWrapper(localName = "commitResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.CommitResponse")
+    @Action(input = "http://ws.server/ResourceManager/commitRequest", output = "http://ws.server/ResourceManager/commitResponse")
+    public boolean commit(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0);
+
+    /**
+     * 
+     * @param arg1
+     * @param arg0
+     * @return
+     *     returns java.lang.String
+     */
+    @WebMethod
+    @WebResult(targetNamespace = "")
+    @RequestWrapper(localName = "queryCustomerInfo", targetNamespace = "http://ws.server/", className = "middleRM.ws.QueryCustomerInfo")
+    @ResponseWrapper(localName = "queryCustomerInfoResponse", targetNamespace = "http://ws.server/", className = "middleRM.ws.QueryCustomerInfoResponse")
+    @Action(input = "http://ws.server/ResourceManager/queryCustomerInfoRequest", output = "http://ws.server/ResourceManager/queryCustomerInfoResponse")
+    public String queryCustomerInfo(
+        @WebParam(name = "arg0", targetNamespace = "")
+        int arg0,
+        @WebParam(name = "arg1", targetNamespace = "")
+        int arg1);
 
 }

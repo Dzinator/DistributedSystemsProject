@@ -16,7 +16,6 @@ class Transaction
 	
 	//list of operations executed so far by transaction. needed in case we rollback
 	private LinkedList<String> operationsToExecute = new LinkedList<String>();
-	private Stack<String> operationsExecuted = new Stack<String>();
 	
 	//items queried and operated on by transaction
 	public final HashMap<String, Item> writeSet = new HashMap<String, Item>(5);
@@ -26,7 +25,6 @@ class Transaction
 	
 	//checks to see if transaction is already aborting, to prevent a given transaction from aborting twice
 	public boolean isTerminating = false; //either abort or commit
-	//TODO: add here isCommitting where isAborting=isCommtting
 	
 	//timestamp for TTL ( time to live) of transaction
 	private long timestamp;
@@ -83,19 +81,6 @@ class Transaction
 	{
 		operationsToExecute.add(cmd);
 		refreshTimeStamp();
-	}
-	
-	//adds a command to the list of commands that have executed under the transaction. Also, refresh the TTL
-	public void addOperationExecuted(String cmd)
-	{
-		 operationsExecuted.push(cmd);
-		 refreshTimeStamp();
-	}
-	
-	//returns the cmds that have been executed by the transaction
-	public Stack<String> cmdsExecuted()
-	{
-		return operationsExecuted;
 	}
 	
 	//returns the list of cmds to be executed by the transaction

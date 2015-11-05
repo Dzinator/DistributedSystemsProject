@@ -16,7 +16,7 @@ import LockManager.*;
  * questions: customers, should we add it to middleware before actually sending it to the servers? If so, that is what is implemented
  * follow-up question, how to make sure 2 transactions can't delete/create both customers locally before committing? put field in customer allowed transaction? 
  * */
-//TODO: implement all query methods after yousuf has responded
+
 //TODO: new/delete/reserve client methods with deadlocks return false, order of operations may corrupt state
 
 /*singleton object that handles transactions of the middle-ware*/
@@ -91,7 +91,7 @@ public class TransactionManager implements server.ws.ResourceManager
 	//Attempt to commit the given transaction; return true upon success; upon deadlock, we abort, upon a false response from server we abort as well
 	@Override
 	public boolean commit(int transactionId) 
-	{//TODO: Dont think we need failed operation exception, also no need for stack in transaction, dont think we need the failed operation thingy
+	{
 		 //check if transaction exists
 		 if (!trxns.containsKey(transactionId))
 			  return false;
@@ -123,9 +123,6 @@ public class TransactionManager implements server.ws.ResourceManager
 			{
 				//execute command
 				executeCommand(t.tid, cmd);
-				
-				//keep command in executed operations on stack
-				t.addOperationExecuted(cmd); //TODO: not sure about this
 			}
 			
 			//every operation committed to every server, we unlock all locks
@@ -136,30 +133,17 @@ public class TransactionManager implements server.ws.ResourceManager
 			
 			//remove transaction from currently executing transactions set
 			trxns.remove(t.tid);
-			
-			//return true to user, everything committed fine
-			return true;
+				
 		} 
 		catch (DeadlockException e) 
 		{
 			//we abort the transaction
 			e.printStackTrace();
 			abort(transactionId);
+			return false;
 		} 
-		catch (FailedOperationException e) //TODO: see above, but I think we don't need this
-		{
-			//we abort the transaction due to unexpected behaviour
-			e.printStackTrace();
-			abort(transactionId);
-		}
 		
-		/*for( Server s : trxns.get(transactionId).servers())
-		{
-			services.get(s).proxy.commit(transactionId);
-		}
-		lm.UnlockAll(transactionId);
-		
-		return true;*/
+		//return true to user, everything committed fine
 		return true;
 	}
 	
@@ -185,38 +169,36 @@ public class TransactionManager implements server.ws.ResourceManager
 	}
 	
 	//executes the command and returns the values obtained to the user
-	private void executeCommand(int id, String cmd) throws FailedOperationException
+	private void executeCommand(int id, String cmd)
 	{
 		//split the csv string
 		String[] args = cmd.split(",");
 		
-		//TODO: check here for throwing execption if returned input is invalid/ tell user results of actions
-		//TODO: return customer info + others, can't retrun data, method type is void
 		switch (args[0])
 		{
 			case "+" + FLIGHT:  Main.services.get(Server.Flight).proxy.addFlight(id, Integer.parseInt(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]));
 								break;		
 			case "-" + FLIGHT: Main.services.get(Server.Flight).proxy.deleteFlight(id, Integer.parseInt(args[1]));
 					   			break;
-			case "q" + FLIGHT: Main.services.get(Server.Flight).proxy.queryFlight(id, Integer.parseInt(args[1]));
+			case "q" + FLIGHT: //nothing to do, only read operation
 					   			break; //nothing to do, only read operation
-			case "p" + FLIGHT: Main.services.get(Server.Flight).proxy.queryFlightPrice(id, Integer.parseInt(args[1]));
+			case "p" + FLIGHT: //nothing to do, only read operation
 					   			break; //nothing to do, only read operation
 			case "+" + CAR: Main.services.get(Server.Car).proxy.addCars(id, args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]));  
 					   		break;	
 			case "-" + CAR:  Main.services.get(Server.Car).proxy.deleteCars(id, args[1]);
 							break;
-			case "q" + CAR: Main.services.get(Server.Car).proxy.queryCars(id, args[1]);
+			case "q" + CAR: //nothing to do, only read operation
 							break; //nothing to do, only read operation
-			case "p" + CAR: Main.services.get(Server.Car).proxy.queryCarsPrice(id, args[1]);
-							break; //nothing to do, only read operation
+			case "p" + CAR: //nothing to do, only read operation
+							break; 
 			case "+" + HOTEL:  Main.services.get(Server.Hotel).proxy.addRooms(id, args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3])); 
 					   		break;
 			case "-" + HOTEL:  Main.services.get(Server.Hotel).proxy.deleteRooms(id, args[1]);
 	   		   		   		break;
-			case "q" + HOTEL: Main.services.get(Server.Hotel).proxy.queryRooms(id,args[1]);
-								break; //nothing to do, only read operation
-			case "p" + HOTEL: Main.services.get(Server.Hotel).proxy.queryRoomsPrice(id,args[1]);
+			case "q" + HOTEL: //nothing to do, only read operation
+								break; 
+			case "p" + HOTEL: //nothing to do, only read operation
 							 break; //nothing to do, only read operation
 			case "+" + CUSTOMER:  Main.addCustomerToServices(id, Integer.parseInt(args[1])); 
 								customers.get(Integer.parseInt(args[1])).isNew = false;
@@ -224,17 +206,13 @@ public class TransactionManager implements server.ws.ResourceManager
 			case "-" + CUSTOMER: Main.removeCustomerFromServices(id, Integer.parseInt(args[1]));
 								customers.remove(Integer.parseInt(args[1]));
 								break;
-			case "q" + CUSTOMER: /*TODO: here and for read options elsewhere, not sure if it is still relevant to execute the read options String result = "Composite Bill for customer " + Integer.parseInt(args[1])+ " {\n\t\t" +
-					Main.services.get(Server.Car).proxy.queryCustomerInfo(id, Integer.parseInt(args[1])) + "\n\n\t\t" +
-					Main.services.get(Server.Hotel).proxy.queryCustomerInfo(id, Integer.parseInt(args[1])) + "\n\n\t\t" +
-					Main. services.get(Server.Flight).proxy.queryCustomerInfo(id, Integer.parseInt(args[1])) + "\n" +
-						"}\n";*/
-						break; //nothing to do, only read operation	
+			case "q" + CUSTOMER:  //nothing to do, only read operation
+								break; 	
 			case "r" + FLIGHT:  Main.services.get(Server.Flight).proxy.reserveFlight(id, Integer.parseInt(args[1]), Integer.parseInt(args[2]));
 					   			break;
-			case "r" + CAR: Main.services.get(Server.Car).proxy.reserveCar(id, Integer.parseInt(args[1]), args[2]);
-							break;
-			case "r" + HOTEL:  Main.services.get(Server.Hotel).proxy.reserveRoom(id, Integer.parseInt(args[1]), args[2]);
+			case "r" + CAR: 	Main.services.get(Server.Car).proxy.reserveCar(id, Integer.parseInt(args[1]), args[2]);
+								break;
+			case "r" + HOTEL:   Main.services.get(Server.Hotel).proxy.reserveRoom(id, Integer.parseInt(args[1]), args[2]);
 					   			break;
 			default: break; //reserve itinerary is a composite of the above actions, no need to actually make a cmd of it
 		}
@@ -885,7 +863,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		  //update values of flight and customer data structures
 		  flight.isReserved = true;
 		  flight.count -= 1;
-		  c.addReservation(flight);
+		  c.addReservation(FLIGHT+ flightNumber, flight);
 
 		 //update the transaction fields
 		  t.addServer(Server.Flight);
@@ -928,7 +906,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		  //update values of car and customer data structures
 		  car.isReserved = true;
 		  car.count -= 1;
-		  c.addReservation(car);
+		  c.addReservation(CAR + location, car);
 
 		 //update the transaction fields
 		  t.addServer(Server.Car);
@@ -971,7 +949,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		  //update values of room and customer data structures
 		  room.isReserved = true;
 		  room.count -= 1;
-		  c.addReservation(room);
+		  c.addReservation(HOTEL + location, room);
 
 		 //update the transaction fields
 		  t.addServer(Server.Hotel);
@@ -1166,66 +1144,4 @@ public class TransactionManager implements server.ws.ResourceManager
 	{
 		return Main.services.get(Server.Hotel).proxy.isRoomReserved(id, location);
 	}
-	
-	
-	//rollsback operations performed so far by the transaction
-	/*private void rollbackOperations(int id) 
-	{
-		
-		//TODO: implement this (DONT THINK we need to since we deferred the updates
-		
-		//get trx
-	/*	Transaction t = trxns.get(id);
-	
-		//get list of cmds so far
-		String[] cmds =  new String[t.cmds().size()];
-	    t.cmds().toArray(cmds);
-		
-		//iterate backwards through the commands
-		for ( int i = cmds.length -1; i >= 0 ; i--)
-		{
-			//get parameters from csv string
-			String[] args = cmds[i].split(",");
-			
-			switch (args[0])
-			{
-				case "+f":  services.get(Server.Flight).proxy.deleteFlight(id, Integer.parseInt(args[1])); //lm.Lock(id, "-f" + args[1], WRITE); //a;lready have this
-							break;		
-				case "-f": services.get(Server.Flight).proxy.addFlight(id, Integer.parseInt(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]));
-						   break;
-				case "qf": break; //nothing to do, only read operation
-				case "pf": break; //nothing to do, only read operation
-				case "+c": services.get(Server.Car).proxy.deleteCars(id, args[1]);
-						   break;	
-				case "-c": services.get(Server.Car).proxy.addCars(id, args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]));
-				   		   break;
-				case "qc": break; //nothing to do, only read operation
-				case "pc": break; //nothing to do, only read operation
-				case "+h": services.get(Server.Hotel).proxy.deleteRooms(id, args[1]);
-						   break;
-				case "-h": services.get(Server.Hotel).proxy.addRooms(id, args[1], Integer.parseInt(args[2]), Integer.parseInt(args[3]));
-		   		   		   break;
-				case "qh": break; //nothing to do, only read operation
-				case "ph": break; //nothing to do, only read operation
-				case "+cu": removeCustomerFromServices(id, Integer.parseInt(args[1]));
-							customers.remove(Integer.parseInt(args[1]));
-							break;//careful 2 cases here,id or  newcustomerId + id 
-				case "-cu": addCustomerToServices(id, Integer.parseInt(args[1]));
-							customers.put(Integer.parseInt(args[1]), new Customer(Integer.parseInt(args[1])));
-							break;
-				case "qcu": break; //nothing to do, only read operation
-				
-				case "rf": //services.get(Server.Flight).proxy.deleteFlight(id, Integer.parseInt(args[2])); //delete the whole flight
-						   services.get(Server.Flight).proxy.addFlight(id, Integer.parseInt(args[2]), 1, Integer.parseInt(args[4])); //and recreate the whole flight
-						   break;
-				case "rc": //services.get(Server.Car).proxy.deleteCars(id, args[2]);
-						   services.get(Server.Car).proxy.addCars(id, args[2], 1, Integer.parseInt(args[4]));
-						   break;
-				case "rh": //services.get(Server.Hotel).proxy.deleteRooms(id, args[2]);
-						   services.get(Server.Hotel).proxy.addRooms(id, args[2], 1, Integer.parseInt(args[4]));
-						   break;
-				default: break; //reserve itinerary is a composite of the above actions, no need to actually make a cmd of it
-			}
-		}
-	}*/
 }

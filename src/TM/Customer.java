@@ -29,10 +29,10 @@ class Customer
 		return items;
 	}*/
 	
-	public void addReservation(Item i)
+	public void addReservation(String key, Item i)
 	{
-		if (!reservations.contains(i))
-			reservations.add(i);
+		if (!reservations.containsKey(key))
+			reservations.put(key, i);
 	}
 	
 	
