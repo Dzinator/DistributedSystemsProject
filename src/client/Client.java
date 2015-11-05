@@ -615,6 +615,8 @@ public class Client extends WSClient {
                     try {
                         boolean c = proxy.startid(getInt(arguments.elementAt(1)));
                         System.out.println("new transaction " + arguments.elementAt(1) + " : " + c);
+                        //performance analysis
+                		startTimes.put(getInt(arguments.elementAt(1)), System.currentTimeMillis());
                     }
                     catch(Exception e) {
                         System.out.println("EXCEPTION: ");
@@ -640,10 +642,10 @@ public class Client extends WSClient {
 						//performance analysis
 						endTimes.put(id, System.currentTimeMillis());
 						long duration = endTimes.get(id) - startTimes.get(id);
-						PrintWriter writer = null;
-						try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("stats.txt", true)))) {
-							//append to stats file
-							writer.println("Transaction " + id + " lasted : " + duration + "ms");
+						try (PrintWriter out = new PrintWriter(new FileWriter("stats.txt", true))) {
+							//append transaction duration to stats file: txid,duration,tps
+							double tps =  1000.0 / (double)LOOPDELAY;
+							out.println( id + "," + duration + "," + tps);
 						} catch (IOException e) {
 							System.out.println("Stats file couldn't be written");
 						} 
@@ -699,12 +701,20 @@ public class Client extends WSClient {
                        
                 if (file != "") {
             		try {
-            			//wait 2 secs and restart reading file
-            			
+            			//variation in loop delay
+            			/*Random r = new Random();
+            			long delay = r.nextInt((int) (LOOPDELAY/10));
+            			if(r.nextBoolean()) {
+            				delay = delay + LOOPDELAY;
+            			}
+            			else  {
+            				delay = delay - LOOPDELAY;
+            			}*/
+            			//wait and restart reading file
             			Thread.sleep(LOOPDELAY);
             			stdin.close();
 						stdin = new BufferedReader(new FileReader(new File(file)));
-						System.out.println("looping to start of file... ");
+						System.out.println("looping to start of file after "+LOOPDELAY+"ms delay ... ");
 					} catch (FileNotFoundException e) {
 						System.out.println("File not found!");
 					} catch (Exception e) {}

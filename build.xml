@@ -5,15 +5,15 @@
     <property name="service.name" value="rm"/>
     <property name="service.host" value="localhost"/>
     <property name="service.port" value="8080"/>
-	<property name="service2.name" value="rm"/>
+	<property name="service2.name" value="flight"/>
 	<property name="service2.host" value="localhost"/>
-	<property name="service2.port" value="8081"/>
-	<property name="service3.name" value="rm"/>
+	<property name="service2.port" value="1410"/>
+	<property name="service3.name" value="car"/>
 	<property name="service3.host" value="localhost"/>
-	<property name="service3.port" value="8081"/>
-	<property name="service4.name" value="rm"/>
+	<property name="service3.port" value="1411"/>
+	<property name="service4.name" value="room"/>
 	<property name="service4.host" value="localhost"/>
-	<property name="service4.port" value="8082"/>
+	<property name="service4.port" value="1412"/>
 
     <path id="jaxws.classpath">
         <pathelement location="${java.home}/../lib/tools.jar"/>

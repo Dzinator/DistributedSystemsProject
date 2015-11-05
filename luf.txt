@@ -5,3 +5,4 @@ newflight,1,1,1,1
 newcar,1,a,1,1
 newroom,1,a,1,1
 commit,1
+loop
