@@ -773,9 +773,16 @@ public class TransactionManager implements server.ws.ResourceManager
 		 
 		 if(customers.get(customerId).isNew)
 		 {
-			 return "new customer cant do shit"; //TODO: only check local customer reservations, otherwise query databases
+			 String Bill = "Items reserved so far : \n{\n\t";
+			 for(Entry<String, Item> e : customers.get(customerId).reservations.entrySet())
+			 {
+				 Bill = e.getKey().substring(1) + " : " + e.getValue().count + " seats reserved : $" + (e.getValue().price * e.getValue().count) + "\n\t";
+			 }
+			 return Bill;
 		 }
-			 
+		
+		 //get customer
+		 Customer c = customers.get(customerId);
 		 
 		 //get all csv (of the form  key,num,price) bills from different servers
 		 String[] flight = Main.services.get(Server.Flight).proxy.queryCustomerInfo(id, customerId).split("\n");
@@ -790,7 +797,7 @@ public class TransactionManager implements server.ws.ResourceManager
 			 String[] args = reservedItem.split(",");
 			 
 			 String key = FLIGHT + args[0];
-			 if ( t.writeSet.containsKey(key))
+			 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
 			 {
 				 Item i = t.writeSet.get(key);
 				 Bill = args[0] + " : " + i.count + " seats reserved : $" + (i.price * i.count) + "\n\t";
@@ -809,7 +816,7 @@ public class TransactionManager implements server.ws.ResourceManager
 			 String[] args = reservedItem.split(",");
 			 
 			 String key = CAR + args[0];
-			 if ( t.writeSet.containsKey(key))
+			 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
 			 {
 				 Item i = t.writeSet.get(key);
 				 Bill = args[0] + " : " + i.count + " cars reserved : $" + (i.price * i.count) + "\n\t";
@@ -828,7 +835,7 @@ public class TransactionManager implements server.ws.ResourceManager
 			 String[] args = reservedItem.split(",");
 			 
 			 String key = HOTEL + args[0];
-			 if ( t.writeSet.containsKey(key))
+			 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
 			 {
 				 Item i = t.writeSet.get(key);
 				 Bill = args[0] + " : " + i.count + " rooms reserved : $" + (i.price * i.count) + "\n\t";

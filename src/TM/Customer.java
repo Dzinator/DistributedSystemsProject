@@ -1,5 +1,6 @@
 package TM;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 
 class Customer
@@ -11,7 +12,7 @@ class Customer
 	boolean isNew = true;
 	
 	//list of reservations made by customer
-	private final LinkedList<Item> reservations = new LinkedList<Item>();
+	 final HashMap<String, Item> reservations = new HashMap<String, Item>();
 	
 	//public final LinkedList<Transaction> exclusiveAccess = new LinkedList<Transaction>();
 	
@@ -21,12 +22,12 @@ class Customer
 		//exclusiveAccess.add(t);
 	}
 	
-	public Item[] getReservations()
+	/*public Item[] getReservations()
 	{
 		Item[] items = new Item[reservations.size()];
-		reservations.toArray(items);
+		reservations.
 		return items;
-	}
+	}*/
 	
 	public void addReservation(Item i)
 	{
