@@ -138,7 +138,8 @@ public class TransactionManager implements server.ws.ResourceManager
 		catch (DeadlockException e) 
 		{
 			//we abort the transaction
-			e.printStackTrace();
+			//e.printStackTrace();
+			System.out.println("Deadlock: Transaction " + t.tid + " will abort.");
 			abort(transactionId);
 			return false;
 		} 
@@ -766,69 +767,84 @@ public class TransactionManager implements server.ws.ResourceManager
 		 Customer c = customers.get(customerId);
 		 
 		 //get all csv (of the form  key,num,price) bills from different servers
-		 String[] flight = Main.services.get(Server.Flight).proxy.queryCustomerInfo(id, customerId).split("\n");
-		 String[] car = Main.services.get(Server.Car).proxy.queryCustomerInfo(id, customerId).split("\n");
-		 String[] room = Main.services.get(Server.Hotel).proxy.queryCustomerInfo(id, customerId).split("\n");
+		 String flight = Main.services.get(Server.Flight).proxy.queryCustomerInfo(id, customerId);
+		 String car = Main.services.get(Server.Car).proxy.queryCustomerInfo(id, customerId);
+		 String room = Main.services.get(Server.Hotel).proxy.queryCustomerInfo(id, customerId);
 		 
-		 String Bill = "Flights :\n{\n\t";
-		 //iterate over all records in flight bill
-		 for (String reservedItem : flight)
+		 String Bill = "";
+		 if ( flight != null)
 		 {
-			 //break record into components
-			 String[] args = reservedItem.split(",");
-			 
-			 String key = FLIGHT + args[0];
-			 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
+			 String[] flights = flight.split("\n");
+			 Bill = "Flights :\n{\n\t";
+			 //iterate over all records in flight bill
+			 for (String reservedItem : flights)
 			 {
-				 Item i = t.writeSet.get(key);
-				 Bill = args[0] + " : " + i.count + " seats reserved : $" + (i.price * i.count) + "\n\t";
+				 //break record into components
+				 String[] args = reservedItem.split(",");
+				 
+				 String key = FLIGHT + args[0];
+				 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
+				 {
+					 Item i = t.writeSet.get(key);
+					 Bill = args[0] + " : " + i.count + " seats reserved : $" + (i.price * i.count) + "\n\t";
+				 }
+				 else
+				 {
+					 Bill += args[0] + " : " + args[1] + " seats reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
+				 }
+				 
 			 }
-			 else
-			 {
-				 Bill += args[0] + " : " + args[1] + " seats reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
-			 }
-			 
+			 Bill += "}";
 		 }
-		 Bill += "}\n Cars :\n{\n\t";
-		//iterate over all records in car bill
-		 for (String reservedItem : car)
+		 if ( car != null)
 		 {
-			 //break record into components
-			 String[] args = reservedItem.split(",");
-			 
-			 String key = CAR + args[0];
-			 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
-			 {
-				 Item i = t.writeSet.get(key);
-				 Bill = args[0] + " : " + i.count + " cars reserved : $" + (i.price * i.count) + "\n\t";
-			 }
-			 else
-			 {
-				 Bill += args[0] + " : " + args[1] + " cars reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
-			 }
-			 
+			 String[] cars = car.split("\n");
+			 Bill += "\n Cars :\n{\n\t";
+				//iterate over all records in car bill
+				 for (String reservedItem : cars)
+				 {
+					 //break record into components
+					 String[] args = reservedItem.split(",");
+					 
+					 String key = CAR + args[0];
+					 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
+					 {
+						 Item i = t.writeSet.get(key);
+						 Bill = args[0] + " : " + i.count + " cars reserved : $" + (i.price * i.count) + "\n\t";
+					 }
+					 else
+					 {
+						 Bill += args[0] + " : " + args[1] + " cars reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
+					 }
+					 
+				 }
+				 Bill += "}";
 		 }
-		 Bill += "}\n Rooms :\n{\n\t";
-		//iterate over all records in hotel bill
-		 for (String reservedItem : room)
+		 if ( room != null)
 		 {
-			 //break record into components
-			 String[] args = reservedItem.split(",");
-			 
-			 String key = HOTEL + args[0];
-			 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
-			 {
-				 Item i = t.writeSet.get(key);
-				 Bill = args[0] + " : " + i.count + " rooms reserved : $" + (i.price * i.count) + "\n\t";
-			 }
-			 else
-			 {
-				 Bill += args[0] + " : " + args[1] + " rooms reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
-			 }	 
+			 //System.out.println("rooms : " + room + " is null " + room == null);
+			 String[] rooms = room.split("\n");
+			 Bill += "}\n Rooms :\n{\n\t";
+				//iterate over all records in hotel bill
+				 for (String reservedItem : rooms)
+				 {
+					 //break record into components
+					 String[] args = reservedItem.split(",");
+					 
+					 String key = HOTEL + args[0];
+					 if ( c.reservations.containsValue(t.writeSet.get(key)) &&  !t.writeSet.get(key).isDeleted)
+					 {
+						 Item i = t.writeSet.get(key);
+						 Bill = args[0] + " : " + i.count + " rooms reserved : $" + (i.price * i.count) + "\n\t";
+					 }
+					 else
+					 {
+						 Bill += args[0] + " : " + args[1] + " rooms reserved : $" + (Integer.parseInt(args[2]) * Integer.parseInt(args[1])) + "\n\t";
+					 }	 
+				 }
+				 Bill += "}\n";
 		 }
-		 Bill += "}\n";
-		 
-		 return Bill; 
+		 return Bill == "" ? "no bill for customer " + customerId : Bill; 
 	}
 
 	@Override

@@ -401,7 +401,7 @@ public class ResourceManagerImpl implements server.ws.ResourceManager {
             Trace.warn("RM::queryCustomerInfo(" + id + ", " 
                     + customerId + ") failed: customer doesn't exist.");
             // Returning an empty bill means that the customer doesn't exist.
-            return "";
+            return null;
         } else {
             String s = cust.printBill();
             Trace.info("RM::queryCustomerInfo(" + id + ", " + customerId + "): \n");
