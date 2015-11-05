@@ -83,7 +83,7 @@ public class LockManager
                             // *** ADD CODE HERE *** to carry out the lock conversion in the
                             // lock table
                         	
-                        	System.out.println("Im in conversion of locks...");
+                        	System.out.println("LM:Conversion of locks...");
                         	
                         	TrxnObj readTrxnObj = new TrxnObj(xid, strData, READ);
                             DataObj readDataObj = new DataObj(xid, strData, READ);
@@ -266,13 +266,13 @@ public class LockManager
         DataObj dataObj2;
         int size = vect.size();
         
-        System.out.println("trx id in lock conflict " + dataObj.xid);
+        //System.out.println("trx id in lock conflict " + dataObj.xid);
         // as soon as a lock that conflicts with the current lock request is found, return true
         for (int i = 0; i < size; i++) {
             dataObj2 = (DataObj) vect.elementAt(i);
            // System.out.println("dataObj1 =  " + dataObj + " ; dataObj2= = " + dataObj2);
             if (dataObj.getXId() == dataObj2.getXId()) {    
-            	System.out.println("dataObj.getXId() == dataObj2.getXId()");
+            	//System.out.println("dataObj.getXId() == dataObj2.getXId()");
                 // the transaction already has a lock on this data item which means that it is either
                 // relocking it or is converting the lock
                 if (dataObj.getLockType() == DataObj.READ) {    
@@ -343,7 +343,7 @@ public class LockManager
                 }
             }
         }
-        System.out.println("returning false, no case above handled");
+        //System.out.println("returning false, no case above handled");
         // no conflicting lock found, return false
         return false;
     }

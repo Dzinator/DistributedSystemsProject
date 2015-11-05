@@ -6,7 +6,7 @@ import java.io.*;
 
 public class Client extends WSClient {
 
-    private static final long LOOPDELAY = 1000; //delay before loop to beginning of file
+    private static long LOOPDELAY = 1000; //delay before loop to beginning of file
     //performance analysis variables
     private HashMap<Integer, Long> startTimes = new HashMap<Integer, Long>();
     private HashMap<Integer, Long> endTimes = new HashMap<Integer, Long>();
@@ -17,14 +17,15 @@ public class Client extends WSClient {
     }
 
     static String file = null;
+	private int clientID;
+	
     public static void main(String[] args) {
         try {
-        
         	if (args[3] != "")
         		file = args[3];
         	else if (args.length != 4) {
                 System.out.println("Usage: MyClient <service-name> " 
-                        + "<service-host> <service-port>");
+                        + "<service-host> <service-port> <input-filename> <client-id>");
                 System.exit(-1);
             }
             
@@ -78,6 +79,15 @@ public class Client extends WSClient {
                 //ignore comments
                 while(command.charAt(0) == '/')
                 	command = stdin.readLine();
+                
+                if(command.charAt(0) == '%') {
+                	LOOPDELAY = Long.parseLong(command.substring(1));
+                	command = stdin.readLine();
+                }
+                if(command.charAt(0) == '@') {
+                	clientID = Integer.parseInt(command.substring(1));
+                	command = stdin.readLine();
+                }
                 
                 if (command == null || command == "")
                 {
@@ -642,7 +652,7 @@ public class Client extends WSClient {
 						//performance analysis
 						endTimes.put(id, System.currentTimeMillis());
 						long duration = endTimes.get(id) - startTimes.get(id);
-						try (PrintWriter out = new PrintWriter(new FileWriter("stats.txt", true))) {
+						try (PrintWriter out = new PrintWriter(new FileWriter(("stats"+clientID+".txt"), true))) {
 							//append transaction duration to stats file: txid,duration,tps
 							double tps =  1000.0 / (double)LOOPDELAY;
 							out.println( id + "," + duration + "," + tps);
@@ -701,19 +711,19 @@ public class Client extends WSClient {
                 if (file != "") {
             		try {
             			//variation in loop delay
-            			/*Random r = new Random();
-            			long delay = r.nextInt((int) (LOOPDELAY/10));
+            			Random r = new Random();
+            			long delay = r.nextInt((int) (LOOPDELAY/10.0));
             			if(r.nextBoolean()) {
-            				delay = delay + LOOPDELAY;
+            				delay = LOOPDELAY + delay;
             			}
             			else  {
-            				delay = delay - LOOPDELAY;
-            			}*/
+            				delay = LOOPDELAY - delay;
+            			}
             			//wait and restart reading file
-            			Thread.sleep(LOOPDELAY);
+            			Thread.sleep(delay);
             			stdin.close();
 						stdin = new BufferedReader(new FileReader(new File(file)));
-						System.out.println("looping to start of file after "+LOOPDELAY+"ms delay ... ");
+						System.out.println("looping to start of file after "+delay+"ms delay ... ");
 					} catch (FileNotFoundException e) {
 						System.out.println("File not found!");
 					} catch (Exception e) {}
@@ -721,6 +731,18 @@ public class Client extends WSClient {
             	else {
                 	System.out.println("Not in file reading mode!");
             	}
+                break;
+                
+            case 28:  //sleeps loopdelay
+                if (arguments.size() != 1) {
+                    wrongNumber();
+                    break;
+                }
+                      
+                try {
+                	System.out.println("Sleeping for "+LOOPDELAY+"ms delay ... ");
+                	Thread.sleep(LOOPDELAY);
+                }catch(Exception e){}
                 break;
                 
             	
@@ -798,6 +820,8 @@ public class Client extends WSClient {
         	return 26;
         else if (argument.compareToIgnoreCase("loop") == 0)
         	return 27;
+        else if (argument.compareToIgnoreCase("sleep") == 0)
+        	return 28;
         else
             return 666;
     }
