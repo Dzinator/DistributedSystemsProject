@@ -6,7 +6,7 @@ import java.io.*;
 
 public class Client extends WSClient {
 
-    private static final long LOOPDELAY = 2000; //delay before loop to beginning of file
+    private static final long LOOPDELAY = 1000; //delay before loop to beginning of file
     //performance analysis variables
     private HashMap<Integer, Long> startTimes = new HashMap<Integer, Long>();
     private HashMap<Integer, Long> endTimes = new HashMap<Integer, Long>();
@@ -685,12 +685,11 @@ public class Client extends WSClient {
                        
                 try {
                 	boolean c = proxy.shutdown();
-                    System.out.println("Servers shut down : " + c);
                 }
                 catch(Exception e) {
-                    System.out.println("EXCEPTION: ");
-                    System.out.println(e.getMessage());
-                    e.printStackTrace();
+                   //an exception thrown means midleware shut down
+                   System.out.println("Servers successfully shut down");
+                   System.exit(0);
                 }
                 break;
             case 27:  //loops to read file

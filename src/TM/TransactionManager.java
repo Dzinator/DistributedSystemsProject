@@ -318,7 +318,10 @@ public class TransactionManager implements server.ws.ResourceManager
 			//call shutdown for each non active server
 			for (  Entry<Server, Connection> e: Main.services.entrySet())
 			{
-				e.getValue().proxy.shutdown();
+				try {
+					e.getValue().proxy.shutdown();
+				} catch (Exception e1) {
+				}
 			}
 		}
 		
