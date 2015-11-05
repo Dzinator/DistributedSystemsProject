@@ -1,4 +1,4 @@
-/build/
-/bin/
-/webapps/
+build/
+bin/
+webapps/
 *.class
