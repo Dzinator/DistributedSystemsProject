@@ -1,5 +1,5 @@
-%15
-@8
+%62
+@6
 start,1
 newflight,1,1,1,1
 newflight,1,2,1,1
@@ -32,4 +32,4 @@ deleteflight,1,1
 deleteflight,1,2
 deleteflight,1,3
 commit,1
-//loop
+loop

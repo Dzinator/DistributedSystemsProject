@@ -1,5 +1,5 @@
-%2000
-@1
+%62
+@6
 start,1
 newflight,1,1,1,1
 newcar,1,a,1,1

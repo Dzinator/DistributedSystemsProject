@@ -10,6 +10,7 @@ class Customer
 	
 	//field to check if customer is new or existing in database
 	boolean isNew = true;
+	boolean isDeleted = false;
 	
 	//list of reservations made by customer
 	 final HashMap<String, Item> reservations = new HashMap<String, Item>();

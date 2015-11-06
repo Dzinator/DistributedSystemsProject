@@ -202,7 +202,7 @@ public class TransactionManager implements server.ws.ResourceManager
 			case "p" + HOTEL: //nothing to do, only read operation
 							 break; //nothing to do, only read operation
 			case "+" + CUSTOMER:  Main.addCustomerToServices(id, Integer.parseInt(args[1])); 
-								customers.get(Integer.parseInt(args[1])).isNew = false;
+								  customers.get(Integer.parseInt(args[1])).isNew = false;
 								break;
 			case "-" + CUSTOMER: Main.removeCustomerFromServices(id, Integer.parseInt(args[1]));
 								customers.remove(Integer.parseInt(args[1]));
@@ -622,7 +622,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		 //check if transaction exists
 		 if (!trxns.containsKey(id))
 			  return -1;
-		
+
 		 //get transaction and update its structures
 		 Transaction t = trxns.get(id);
 		 t.addServer(Server.Car); //add server to transaction
@@ -659,7 +659,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		//check if transaction exists
 		 if (!trxns.containsKey(id))
 			  return false;
-		 if( customers.containsKey(customerId))
+		 if( customers.containsKey(customerId) && !customers.get(customerId).isDeleted)
 			  return false;
 		
 		 //get transaction and update its structures
@@ -693,7 +693,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		//check if transaction exists
 		 if (!trxns.containsKey(id))
 			  return false;
-		 if( !customers.containsKey(customerId))
+		 if( !customers.containsKey(customerId) || customers.get(customerId).isDeleted)
 			  return false;
 		
 		try 
@@ -717,7 +717,8 @@ public class TransactionManager implements server.ws.ResourceManager
 		 t.addOperationToExecute("-" + CUSTOMER +"," + customerId);
 		 
 		 //place customer in data structure
-		 customers.remove(customerId);
+		 customers.get(customerId).isDeleted = true;
+		 //customers.remove(customerId);
 		 
 		 //return the id
 		 return true;	
@@ -730,7 +731,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		 if (!trxns.containsKey(id))
 			  return "wrong transaction id";
 		 //check if customer actually exists
-		 if (!customers.containsKey(customerId))
+		 if (!customers.containsKey(customerId) || customers.get(customerId).isDeleted)
 			 return "customer doesn't exist";
 	
 		 try 
@@ -853,7 +854,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		  //check if transaction exists
 		  if (!trxns.containsKey(id))
 			  return false;
-		  if( !customers.containsKey(customerId))
+		  if( !customers.containsKey(customerId)  || customers.get(customerId).isDeleted)
 			  return false;
 		  
 		  try 
@@ -896,7 +897,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		//check if transaction exists
 		if (!trxns.containsKey(id))
 			  return false;
-		if( !customers.containsKey(customerId))
+		if( !customers.containsKey(customerId) || customers.get(customerId).isDeleted)
 			  return false;
 		  
 		  try 
@@ -939,7 +940,7 @@ public class TransactionManager implements server.ws.ResourceManager
 		//check if transaction exists
 		if (!trxns.containsKey(id))
 			  return false;
-		if( !customers.containsKey(customerId))
+		if( !customers.containsKey(customerId) || customers.get(customerId).isDeleted)
 			  return false;
 		  
 		  try 
@@ -981,7 +982,7 @@ public class TransactionManager implements server.ws.ResourceManager
 	{
 		 if (!trxns.containsKey(id))
 			  return false;
-		 if( !customers.containsKey(customerId))
+		 if( !customers.containsKey(customerId)|| customers.get(customerId).isDeleted)
 			  return false;
 		 
 		//get transaction and update its structures
