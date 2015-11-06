@@ -1,3 +1,5 @@
+%2000
+@1
 start,1
 newflight,1,1,1,1
 newcar,1,a,1,1
@@ -23,5 +25,11 @@ reserveroom,1,3,a
 querycustomer,1,1
 querycustomer,1,2
 querycustomer,1,3
+deletecustomer,1,1
+deletecustomer,1,2
+deletecustomer,1,3
+deleteflight,1,1
+deletecar,1,a
+deleteroom,1,a
 commit,1
 loop
