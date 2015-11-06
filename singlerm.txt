@@ -24,4 +24,4 @@ querycustomer,1,1
 querycustomer,1,2
 querycustomer,1,3
 commit,1
-loop
+//loop
