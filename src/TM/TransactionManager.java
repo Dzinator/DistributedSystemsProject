@@ -272,6 +272,27 @@ public class TransactionManager implements server.ws.ResourceManager
 		}
 	}
 	
+	//cleans up the middle ware resources. In this case we have only customers 
+	private void cleanup(String cmd) 
+	{
+		//get parameters from csv string
+		String[] args = cmd.split(",");
+	
+		//get different type of locks depending on operation and object
+		switch (args[0])
+		{
+			case "+" + CUSTOMER: //delete customer from the hash map if they were created from this transaction
+						Customer c = customers.get(Integer.parseInt(args[1]));
+						if (c.isNew)//if customer was created by this transaction, delete it
+							customers.remove(Integer.parseInt(args[1]));
+						break;
+			case "-" + CUSTOMER: //reset the is deleted flag to false, the customer is not deleted by this transaction
+						customers.get(args[1]).isDeleted = false;
+						break;
+			default: break; //no cleanup needed for other resources
+		}
+	}
+
 	//Aborts the given transaction and rollbacks all cmds that have been executed
 	@Override
 	public boolean abort(int transactionId) 
@@ -292,6 +313,10 @@ public class TransactionManager implements server.ws.ResourceManager
 			t.isTerminating= true;
 		}
 		 
+		//clean up resources
+		for ( String cmd : t.cmds())
+			cleanup(cmd);
+		
 		 //unlock all resources held by transaction, if any
 		 lm.UnlockAll(transactionId);
 		 
